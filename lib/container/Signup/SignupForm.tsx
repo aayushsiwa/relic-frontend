@@ -1,30 +1,31 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
-  FieldError,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { authClient } from '@/lib/auth-client';
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -33,7 +34,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     e.preventDefault();
     setError(null);
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return;
     }
     startTransition(async () => {
@@ -43,17 +44,17 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             email,
             password,
             name,
-            callbackURL: "/dashboard",
+            callbackURL: '/dashboard',
           },
-          {},
+          {}
         );
         if (signUpErr) {
-          setError(signUpErr.message || "Signup failed.");
+          setError(signUpErr.message || 'Signup failed.');
         } else {
-          router.push("/dashboard");
+          router.push('/dashboard');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unexpected error.");
+        setError(err instanceof Error ? err.message : 'Unexpected error.');
       }
     });
   }
@@ -133,7 +134,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             <FieldGroup>
               <Field>
                 <Button type="submit" disabled={isPending}>
-                  {isPending ? "Creating..." : "Create Account"}
+                  {isPending ? 'Creating...' : 'Create Account'}
                 </Button>
                 <Button variant="outline" type="button" disabled>
                   Sign up with Google

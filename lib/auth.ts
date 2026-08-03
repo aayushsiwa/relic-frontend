@@ -1,10 +1,10 @@
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { betterAuth } from 'better-auth';
+import { bearer } from 'better-auth/plugins/bearer';
+
+import { pool } from './db';
 
 export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
+  database: pool,
   emailAndPassword: {
     enabled: true,
   },
@@ -14,4 +14,5 @@ export const auth = betterAuth({
       clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
     },
   },
+  plugins: [bearer()],
 });
