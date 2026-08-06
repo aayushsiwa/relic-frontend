@@ -1,0 +1,2 @@
+ALTER TABLE "relics" ADD CONSTRAINT "relics_user_id_url_unique" UNIQUE("user_id","url");--> statement-breakpoint
+ALTER TABLE "relics" ADD CONSTRAINT "relics_user_id_title_unique" UNIQUE("user_id","title");

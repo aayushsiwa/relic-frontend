@@ -1,27 +1,29 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
-import "./globals.css";
-import { cn } from "@/lib/utils";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono, JetBrains_Mono } from 'next/font/google';
+
+import { ThemeProvider } from '@/lib/components/ThemeContext';
+import { cn } from '@/lib/utils';
+
+import './globals.css';
 
 const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
+  subsets: ['latin'],
+  variable: '--font-mono',
 });
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Relic — Personal Knowledge Archive",
-  description:
-    "Capture, preserve, and rediscover your digital knowledge.",
+  title: 'Relic — Personal Knowledge Archive',
+  description: 'Capture, preserve, and rediscover your digital knowledge.',
 };
 
 export default function RootLayout({
@@ -33,15 +35,17 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn(
-        "h-full",
-        "antialiased",
+        'h-full',
+        'antialiased',
         geistSans.variable,
         geistMono.variable,
-        "font-mono",
-        jetbrainsMono.variable,
+        'font-mono',
+        jetbrainsMono.variable
       )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
