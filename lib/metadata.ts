@@ -58,7 +58,9 @@ function assertSafeUrl(raw: string): string {
   return parsed.toString();
 }
 
-async function fetchPageHtml(url: string): Promise<string> {
+async function fetchPageHtml(
+  url: string
+): Promise<{ html: string; finalUrl: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -83,17 +85,110 @@ async function fetchPageHtml(url: string): Promise<string> {
       throw new Error('Page is too large to parse.');
     }
 
-    return new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+    const html = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+    return { html, finalUrl: res.url };
   } finally {
     clearTimeout(timeout);
   }
 }
 
-// Pull basic tags from <meta name="keywords">, og:tag, and article:tag.
-function extractTags(html: string): string[] {
-  const found = new Set<string>();
-  const metaTags = html.match(/<meta\b[^>]*>/gi) ?? [];
+function resolveUrl(src: string, baseUrl: string): string | null {
+  try {
+    return new URL(src, baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
 
+// Fall back to the first real <img> on the page (skips logos/icons/trackers).
+const JUNK_IMAGE =
+  /logo|icon|avatar|badge|pixel|spacer|blank|placeholder|loading|transparent|sprite|favicon|1x1|\.svg$|^data:/i;
+
+function extractContentImage(
+  html: string,
+  baseUrl: string
+): string | undefined {
+  const imgs = html.match(/<img\b[^>]*>/gi) ?? [];
+  for (const raw of imgs) {
+    const srcMatch = raw.match(/\bsrc\s*=\s*["']([^"']+)["']/i);
+    if (!srcMatch || JUNK_IMAGE.test(srcMatch[1])) continue;
+
+    // Skip images that are explicitly tiny.
+    const widthMatch = raw.match(/\bwidth\s*=\s*["']?(\d+)/i);
+    const heightMatch = raw.match(/\bheight\s*=\s*["']?(\d+)/i);
+    const width = widthMatch ? Number(widthMatch[1]) : undefined;
+    const height = heightMatch ? Number(heightMatch[1]) : undefined;
+    if (
+      width !== undefined &&
+      height !== undefined &&
+      (width < 200 || height < 200)
+    ) {
+      continue;
+    }
+
+    const resolved = resolveUrl(srcMatch[1], baseUrl);
+    if (resolved) return resolved;
+  }
+  return undefined;
+}
+
+// Strip markup so we can derive keywords from the visible text.
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const STOPWORDS = new Set(
+  `a about above after again against all also am an and any are aren't as at be because been before being below between both but by can can't cannot could couldn't did didn't do does doesn't doing don't down during each few for from further had hadn't has hasn't have haven't having he he'd he'll he's her here here's hers herself him himself his how how's i i'd i'll i'm i've if in into is isn't it it's its itself just let's like me more most mustn't my myself no nor not of off on once only or other ought our ours ourselves out over own same shan't she she'd she'll she's should shouldn't so some such than that that's the their theirs them themselves then there there's these they they'd they'll they're they've this those through to too under until up very was wasn't we we'd we'll we're we've were weren't what what's when when's where where's which while who who's whom why why's with won't would wouldn't you you'd you'll you're you've your yours yourself yourselves`.split(
+    /\s+/
+  )
+);
+
+// Score keywords from title, description, and body text by weighted frequency.
+function deriveKeywords(title?: string, description?: string, body = '') {
+  const freq = new Map<string, number>();
+  const bump = (text: string, weight: number) => {
+    const words = text.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) ?? [];
+    for (const word of words) {
+      if (STOPWORDS.has(word)) continue;
+      freq.set(word, (freq.get(word) ?? 0) + weight);
+    }
+  };
+  bump(title ?? '', 5);
+  bump(description ?? '', 3);
+  bump(body, 1);
+
+  return [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([word]) => word);
+}
+
+// Combine explicit meta tags (keywords, og:tag, article:tag) with keywords
+// derived from the page text so every relic ends up with some tags.
+function extractTags(
+  html: string,
+  title?: string,
+  description?: string
+): string[] {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  const push = (tag: string) => {
+    const cleaned = tag.trim().replace(/\s+/g, ' ');
+    if (
+      cleaned &&
+      cleaned.length <= MAX_TAG_LENGTH &&
+      !seen.has(cleaned.toLowerCase())
+    ) {
+      seen.add(cleaned.toLowerCase());
+      tags.push(cleaned);
+    }
+  };
+
+  const metaTags = html.match(/<meta\b[^>]*>/gi) ?? [];
   for (const raw of metaTags) {
     const keyMatch = raw.match(/(?:name|property)\s*=\s*["']([^"']+)["']/i);
     const contentMatch = raw.match(/content\s*=\s*["']([^"']*)["']/i);
@@ -103,16 +198,18 @@ function extractTags(html: string): string[] {
     if (key !== 'keywords' && key !== 'og:tag' && key !== 'article:tag') {
       continue;
     }
-
-    for (const part of contentMatch[1].split(',')) {
-      const tag = part.trim().replace(/\s+/g, ' ');
-      if (tag) found.add(tag);
-    }
+    for (const part of contentMatch[1].split(',')) push(part);
   }
 
-  return [...found]
-    .filter((tag) => tag.length <= MAX_TAG_LENGTH)
-    .slice(0, MAX_TAGS);
+  const derived = deriveKeywords(title, description, htmlToText(html)).filter(
+    (word) => word.length >= 3
+  );
+  for (const word of derived) {
+    if (tags.length >= MAX_TAGS) break;
+    push(word);
+  }
+
+  return tags.slice(0, MAX_TAGS);
 }
 
 export type ExtractedMetadata = {
@@ -128,17 +225,28 @@ export type ExtractedMetadata = {
 // domain, and basic tags. Fails gracefully per-field on missing data.
 export async function extractMetadata(url: string): Promise<ExtractedMetadata> {
   const safeUrl = assertSafeUrl(url);
-  const html = await fetchPageHtml(safeUrl);
+  const { html, finalUrl } = await fetchPageHtml(safeUrl);
 
-  const meta = await getMetadata({ url: safeUrl, html });
+  // Resolve relative URLs against the post-redirect page URL.
+  const meta = await getMetadata({ url: finalUrl, html });
+  const domain = new URL(safeUrl).hostname;
+
+  // metascraper's last-resort fallback can return tiny logos (e.g. y18.svg);
+  // discard junk and use our own content-image scan instead.
+  const metaImage = meta.image ?? '';
+  const previewImage =
+    metaImage && !JUNK_IMAGE.test(metaImage)
+      ? metaImage
+      : extractContentImage(html, finalUrl);
+  const favicon = meta.logo ?? `https://icons.duckduckgo.com/ip3/${domain}.ico`;
 
   return {
     title: meta.title || undefined,
     description: meta.description || undefined,
-    previewImage: meta.image || undefined,
-    favicon: meta.logo || undefined,
-    domain: new URL(safeUrl).hostname,
-    tags: extractTags(html),
+    previewImage,
+    favicon,
+    domain,
+    tags: extractTags(html, meta.title, meta.description),
   };
 }
 
