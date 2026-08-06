@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 
 import { auth } from '@/lib/auth';
 import { db, schema } from '@/lib/db';
+import { extractMetadata, resolveTagIds } from '@/lib/metadata';
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -169,6 +170,29 @@ export async function POST(request: NextRequest) {
     contentType,
   } = body;
 
+  const enriched: {
+    title?: string;
+    description?: string;
+    previewImage?: string;
+    favicon?: string;
+    domain?: string;
+  } = {};
+  let autoTagNames: string[] = [];
+
+  if (url && (contentType ?? 'url') === 'url') {
+    try {
+      const metadata = await extractMetadata(url);
+      if (!title) enriched.title = metadata.title;
+      if (!description) enriched.description = metadata.description;
+      if (!previewImage) enriched.previewImage = metadata.previewImage;
+      if (!favicon) enriched.favicon = metadata.favicon;
+      if (!domain) enriched.domain = metadata.domain;
+      autoTagNames = metadata.tags;
+    } catch {
+      // Metadata is best-effort; never fail relic creation over enrichment.
+    }
+  }
+
   let relic;
 
   try {
@@ -184,6 +208,7 @@ export async function POST(request: NextRequest) {
         previewImage,
         favicon,
         contentType: contentType ?? 'url',
+        ...enriched,
       })
       .returning();
   } catch (err: unknown) {
@@ -207,9 +232,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (tagIds?.length) {
+  if (tagIds?.length || autoTagNames.length) {
+    const autoTagIds = autoTagNames.length
+      ? await resolveTagIds(session.user.id, autoTagNames)
+      : [];
+    const allTagIds = [...new Set([...(tagIds ?? []), ...autoTagIds])];
     await db.insert(schema.relicTags).values(
-      tagIds.map((tagId: string) => ({
+      allTagIds.map((tagId: string) => ({
         relicId: relic.id,
         tagId,
       }))
