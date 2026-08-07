@@ -10,6 +10,7 @@ export type Relic = {
   domain: string | null;
   previewImage: string | null;
   favicon: string | null;
+  isProcessing: boolean;
   contentType: 'url' | 'note' | 'file';
   createdAt: string;
   updatedAt: string;
