@@ -1,3 +1,4 @@
+import { extractFromHtml } from '@extractus/article-extractor';
 import * as cheerio from 'cheerio';
 import { inArray } from 'drizzle-orm';
 import metascraper from 'metascraper';
@@ -213,11 +214,12 @@ function deriveKeywords(title?: string, description?: string, body = '') {
 }
 
 // Combine explicit meta tags (keywords, og:tag, article:tag) with keywords
-// derived from the page text so every relic ends up with some tags.
+// derived from the article body so every relic ends up with some tags.
 function extractTags(
   html: string,
   title?: string,
-  description?: string
+  description?: string,
+  body = ''
 ): string[] {
   const tags: string[] = [];
   const seen = new Set<string>();
@@ -246,11 +248,10 @@ function extractTags(
     for (const part of contentMatch[1].split(',')) push(part);
   }
 
-  // Prefer the main content region, trimmed to the intro; fall back to a
-  // bounded slice of the page.
-  const body = (extractMainText(html) ?? htmlToText(html)).slice(0, 1500);
+  // Trim to the intro so repetitive article prose doesn't drown out topics.
+  const intro = body.slice(0, 1500);
 
-  const derived = deriveKeywords(title, description, body).filter(
+  const derived = deriveKeywords(title, description, intro).filter(
     (word) => word.length >= 3
   );
   for (const word of derived) {
@@ -270,6 +271,42 @@ export type ExtractedMetadata = {
   tags: string[];
 };
 
+// Use Mozilla Readability (via article-extractor) to pull the clean article
+// body for keyword derivation. Prefer prose over tables (Wikipedia infoboxes
+// leak spec-sheet words), but keep unstripped text for table-only pages like
+// Hacker News. Falls back to selector heuristics, then raw page text.
+async function extractArticle(
+  html: string,
+  url: string
+): Promise<{
+  text: string;
+  article: Awaited<ReturnType<typeof extractFromHtml>>;
+}> {
+  let article: Awaited<ReturnType<typeof extractFromHtml>> = null;
+  try {
+    article = await extractFromHtml(html, url, { contentLengthThreshold: 200 });
+  } catch {
+    article = null;
+  }
+
+  if (article?.content) {
+    const $ = cheerio.load(article.content);
+    $('table').remove();
+    const prose = htmlToText($.html());
+    if (prose.length >= 200) return { text: prose, article };
+  }
+
+  const selectorText = extractMainText(html);
+  if (selectorText) return { text: selectorText, article };
+
+  if (article?.content) {
+    const text = htmlToText(article.content);
+    if (text.length >= 200) return { text, article };
+  }
+
+  return { text: htmlToText(html), article };
+}
+
 // Fetch a page and enrich it with title, description, preview image, favicon,
 // domain, and basic tags. Fails gracefully per-field on missing data.
 export async function extractMetadata(url: string): Promise<ExtractedMetadata> {
@@ -279,6 +316,8 @@ export async function extractMetadata(url: string): Promise<ExtractedMetadata> {
   // Resolve relative URLs against the post-redirect page URL.
   const meta = await getMetadata({ url: finalUrl, html });
   const domain = new URL(safeUrl).hostname;
+
+  const { text: body, article } = await extractArticle(html, finalUrl);
 
   // metascraper's last-resort fallback can return tiny logos (e.g. y18.svg);
   // discard junk and use our own content-image scan instead.
@@ -290,12 +329,12 @@ export async function extractMetadata(url: string): Promise<ExtractedMetadata> {
   const favicon = meta.logo ?? `https://icons.duckduckgo.com/ip3/${domain}.ico`;
 
   return {
-    title: meta.title || undefined,
-    description: meta.description || undefined,
+    title: meta.title || article?.title || undefined,
+    description: meta.description || article?.description || undefined,
     previewImage,
     favicon,
     domain,
-    tags: extractTags(html, meta.title, meta.description),
+    tags: extractTags(html, meta.title, meta.description, body),
   };
 }
 

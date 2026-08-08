@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@extractus/article-extractor": "^9.0.0",
     "@phosphor-icons/react": "^2.1.10",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "axios": "^1.18.1",
