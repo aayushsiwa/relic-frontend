@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { bearer } from 'better-auth/plugins/bearer';
 
 import { pool } from './db';
+import { sendEmail } from './email';
 
 export const auth = betterAuth({
   database: pool,
