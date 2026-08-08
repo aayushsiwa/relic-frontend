@@ -166,8 +166,17 @@ export function LoginForm({
                 <Button type="submit" disabled={isPending}>
                   {isPending ? 'Logging in...' : 'Login'}
                 </Button>
-                <Button variant="outline" type="button" disabled>
-                  Login with Google
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() =>
+                    authClient.signIn.social({
+                      provider: 'github',
+                      callbackURL: '/dashboard',
+                    })
+                  }
+                >
+                  Login with GitHub
                 </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <a href="/signup">Sign up</a>
