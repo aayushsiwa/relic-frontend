@@ -1,3 +1,4 @@
+import * as cheerio from 'cheerio';
 import { inArray } from 'drizzle-orm';
 import metascraper from 'metascraper';
 import metascraperDescription from 'metascraper-description';
@@ -145,17 +146,48 @@ function htmlToText(html: string): string {
     .trim();
 }
 
+// Pull the visible text of the main content region (article/main or common
+// content containers) so navigation chrome doesn't pollute derived keywords.
+const MAIN_CONTENT_SELECTORS = [
+  '#mw-content-text',
+  '.entry-content',
+  '.post-content',
+  'article',
+  '[role="main"]',
+  'main',
+  '#content',
+];
+
+function extractMainText(html: string): string | null {
+  const $ = cheerio.load(html);
+  $('script, style, noscript, svg, template').remove();
+  for (const selector of MAIN_CONTENT_SELECTORS) {
+    const text = $(selector).first().text().replace(/\s+/g, ' ').trim();
+    if (text.length > 200) return text;
+  }
+  return null;
+}
+
 const STOPWORDS = new Set(
   `a about above after again against all also am an and any are aren't as at be because been before being below between both but by can can't cannot could couldn't did didn't do does doesn't doing don't down during each few for from further had hadn't has hasn't have haven't having he he'd he'll he's her here here's hers herself him himself his how how's i i'd i'll i'm i've if in into is isn't it it's its itself just let's like me more most mustn't my myself no nor not of off on once only or other ought our ours ourselves out over own same shan't she she'd she'll she's should shouldn't so some such than that that's the their theirs them themselves then there there's these they they'd they'll they're they've this those through to too under until up very was wasn't we we'd we'll we're we've were weren't what what's when when's where where's which while who who's whom why why's with won't would wouldn't you you'd you'll you're you've your yours yourself yourselves
   about comments com dont else get got into log login minutes now page pages points read reply share sign signup submit times today vote votes weblog web what who what why when where which while
-  hours ago hide points show`.split(/\s+/)
+  hours ago hide points show
+  called let using used also one many way make time even still want know look get`.split(
+    /\s+/
+  )
 );
 
 // Score keywords from title, description, and body text by weighted frequency.
-// Per-word counts are capped so repetitive page chrome can't outrank title words.
+// Title/description words are treated as highly relevant; body words must
+// repeat to count, so one-off navigation terms don't become tags.
 function deriveKeywords(title?: string, description?: string, body = '') {
   const freq = new Map<string, number>();
-  const bump = (text: string, weight: number, maxPerWord: number) => {
+  const bump = (
+    text: string,
+    weight: number,
+    maxPerWord: number,
+    minCount = 1
+  ) => {
     const counts = new Map<string, number>();
     const words = text.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) ?? [];
     for (const word of words) {
@@ -163,6 +195,7 @@ function deriveKeywords(title?: string, description?: string, body = '') {
       counts.set(word, (counts.get(word) ?? 0) + 1);
     }
     for (const [word, count] of counts) {
+      if (count < minCount) continue;
       freq.set(
         word,
         (freq.get(word) ?? 0) + Math.min(count, maxPerWord) * weight
@@ -171,9 +204,12 @@ function deriveKeywords(title?: string, description?: string, body = '') {
   };
   bump(title ?? '', 5, 2);
   bump(description ?? '', 3, 2);
-  bump(body, 1, 1);
+  bump(body, 1, 3, 2);
 
-  return [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([word]) => word);
+  return [...freq.entries()]
+    .filter(([, score]) => score >= 3)
+    .sort((a, b) => b[1] - a[1])
+    .map(([word]) => word);
 }
 
 // Combine explicit meta tags (keywords, og:tag, article:tag) with keywords
@@ -210,7 +246,11 @@ function extractTags(
     for (const part of contentMatch[1].split(',')) push(part);
   }
 
-  const derived = deriveKeywords(title, description, htmlToText(html)).filter(
+  // Prefer the main content region, trimmed to the intro; fall back to a
+  // bounded slice of the page.
+  const body = (extractMainText(html) ?? htmlToText(html)).slice(0, 1500);
+
+  const derived = deriveKeywords(title, description, body).filter(
     (word) => word.length >= 3
   );
   for (const word of derived) {
