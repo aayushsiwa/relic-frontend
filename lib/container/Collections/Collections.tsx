@@ -19,6 +19,7 @@ export function Collections({ email }: { email: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editColor, setEditColor] = useState('#3b82f6');
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -36,12 +37,14 @@ export function Collections({ email }: { email: string }) {
     setEditingId(c.id);
     setEditName(c.name);
     setEditDescription(c.description ?? '');
+    setEditColor(c.color ?? '#3b82f6');
   }
 
   async function handleUpdate(id: string) {
     await update(id, {
       name: editName,
       description: editDescription || undefined,
+      color: editColor,
     });
     setEditingId(null);
   }
@@ -133,6 +136,12 @@ export function Collections({ email }: { email: string }) {
                           value={editDescription}
                           onChange={(e) => setEditDescription(e.target.value)}
                           placeholder="Description"
+                        />
+                        <input
+                          type="color"
+                          value={editColor}
+                          onChange={(e) => setEditColor(e.target.value)}
+                          className="h-8 w-12 cursor-pointer rounded border bg-transparent"
                         />
                         <div className="flex gap-2">
                           <Button size="sm" onClick={() => handleUpdate(c.id)}>
