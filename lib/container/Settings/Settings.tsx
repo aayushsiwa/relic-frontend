@@ -21,7 +21,7 @@ export default async function Settings() {
 
   return (
     <div className="flex flex-col flex-1">
-      <Navbar email={email ?? ''} />
+      <Navbar user={{ name, email: email ?? '', image: image ?? null }} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-2xl">

@@ -23,7 +23,11 @@ dayjs.extend(relativeTime);
 export function Home({
   user,
 }: {
-  user: { name?: string | null; email?: string | null } | null;
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
 }) {
   if (!user) {
     return <Landing />;
@@ -102,7 +106,11 @@ function Landing() {
 function AuthenticatedHome({
   user,
 }: {
-  user: { name?: string | null; email?: string | null };
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 }) {
   const [search, setSearch] = useState('');
   const [collectionId, setCollectionId] = useState('');
@@ -114,7 +122,13 @@ function AuthenticatedHome({
 
   return (
     <div className="flex flex-col flex-1">
-      <Navbar email={user.email ?? ''} />
+      <Navbar
+        user={{
+          name: user.name ?? '',
+          email: user.email ?? '',
+          image: user.image ?? null,
+        }}
+      />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-5xl">

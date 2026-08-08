@@ -12,5 +12,13 @@ export default async function Page() {
     redirect('/login');
   }
 
-  return <Collections email={session.user.email ?? ''} />;
+  return (
+    <Collections
+      user={{
+        name: session.user.name ?? '',
+        email: session.user.email ?? '',
+        image: session.user.image ?? null,
+      }}
+    />
+  );
 }
