@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ export function ViewRelicDialog({
 }) {
   const [relic, setRelic] = useState<RelicWithRelations | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [prevRelicId, setPrevRelicId] = useState(relicId);
   const [prevOpen, setPrevOpen] = useState(open);
 
@@ -72,14 +73,11 @@ export function ViewRelicDialog({
         ) : (
           <div className="space-y-4">
             {relic.previewImage && (
-              <Image
+              <img
                 src={relic.previewImage}
                 alt={relic.title ?? 'Relic preview'}
-                width={800}
-                height={256}
-                className="w-full rounded border object-cover max-h-64"
-                unoptimized
-                priority
+                className="object-contain w-full transition-transform duration-300 max-h-64 cursor-zoom-in"
+                onClick={() => setImagePreviewOpen(true)}
               />
             )}
 
@@ -165,6 +163,31 @@ export function ViewRelicDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
+        <DialogContent
+          className="p-0 sm:max-w-[90vw] bg-black/95 ring-white/10"
+          showCloseButton={false}
+        >
+          {relic?.previewImage && (
+            <img
+              src={relic.previewImage}
+              alt={relic.title ?? 'Relic preview'}
+              className="object-contain w-full h-full max-h-[85vh] cursor-zoom-out"
+              onClick={() => setImagePreviewOpen(false)}
+            />
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-2 right-2 text-white/80 hover:text-white"
+            onClick={() => setImagePreviewOpen(false)}
+            aria-label="Close preview"
+          >
+            <XIcon />
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
