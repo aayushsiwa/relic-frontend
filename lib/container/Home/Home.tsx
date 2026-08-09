@@ -17,7 +17,6 @@ import { AddRelicDialog } from '@/lib/components/AddRelicDialog';
 import { Navbar } from '@/lib/components/Navbar';
 import { SearchFilters } from '@/lib/components/SearchFilters';
 import { ViewRelicDialog } from '@/lib/components/ViewRelicDialog';
-
 import { EditRelicDialog } from '@/lib/container/Library/EditRelicDialog';
 
 import { useHomeData } from './Home.hooks';
@@ -218,7 +217,11 @@ function AuthenticatedHome({
               ) : data && data.recentRelics.length > 0 ? (
                 <ul className="divide-y">
                   {data.recentRelics.map((relic) => (
-                    <li key={relic.id} className="flex items-center gap-3 py-3">
+                    <li
+                      key={relic.id}
+                      onClick={() => setViewRelicId(relic.id)}
+                      className="flex items-center gap-3 py-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 -mx-2 transition-colors"
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-medium">
                           {/*|| relic.url ||*/}
