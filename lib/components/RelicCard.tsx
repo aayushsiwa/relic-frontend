@@ -23,7 +23,7 @@ export function RelicCard({
 }) {
   return (
     <Card
-      className="relative flex flex-col w-full cursor-pointer"
+      className="relative flex flex-col w-full cursor-pointer hover:shadow-[0_0_0_1px_var(--border)]"
       onClick={onView}
     >
       {relic.previewImage && (
@@ -31,11 +31,7 @@ export function RelicCard({
           <Image
             src={relic.previewImage}
             alt={relic.title || relic.url || 'Preview'}
-            fill
-            unoptimized
-            loading="eager"
             className="object-cover"
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           />
         </div>
       )}
