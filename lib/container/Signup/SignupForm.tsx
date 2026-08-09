@@ -136,8 +136,17 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <Button type="submit" disabled={isPending}>
                   {isPending ? 'Creating...' : 'Create Account'}
                 </Button>
-                <Button variant="outline" type="button" disabled>
-                  Sign up with Google
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() =>
+                    authClient.signIn.social({
+                      provider: 'github',
+                      callbackURL: '/',
+                    })
+                  }
+                >
+                  Sign up with GitHub
                 </Button>
                 <FieldDescription className="px-6 text-center">
                   Already have an account? <a href="/login">Sign in</a>
