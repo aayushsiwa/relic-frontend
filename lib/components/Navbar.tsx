@@ -10,7 +10,6 @@ const navItems = [
   { href: '/', label: 'Home' },
   { href: '/library', label: 'Library' },
   { href: '/collections', label: 'Collections' },
-  { href: '/settings', label: 'Settings' },
 ];
 
 export function Navbar({ email }: { email: string }) {
