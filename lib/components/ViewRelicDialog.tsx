@@ -166,7 +166,7 @@ export function ViewRelicDialog({
 
       <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
         <DialogContent
-          className="p-0 sm:max-w-[90vw] bg-black/95 ring-white/10"
+          className="p-0 sm:max-w-[90vw] bg-black/20 ring-white/10 backdrop-blur-md"
           showCloseButton={false}
         >
           {relic?.previewImage && (
