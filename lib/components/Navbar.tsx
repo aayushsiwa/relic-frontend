@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { ThemeToggle } from '@/lib/components/ThemeToggle';
@@ -17,7 +18,12 @@ export function Navbar({ email }: { email: string }) {
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4 md:px-10">
-      <span className="text-lg font-semibold tracking-tight">Relic</span>
+      <Link
+        href={'/'}
+        className="text-lg font-semibold tracking-tight cursor-pointer select-none"
+      >
+        Relic
+      </Link>
       <div className="flex items-center gap-4">
         {navItems.map((item) => (
           <a
