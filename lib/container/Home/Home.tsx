@@ -13,8 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { AddRelicDialog } from '@/lib/components/AddRelicDialog';
 import { Navbar } from '@/lib/components/Navbar';
 import { SearchFilters } from '@/lib/components/SearchFilters';
+import { ViewRelicDialog } from '@/lib/components/ViewRelicDialog';
 
 import { useHomeData } from './Home.hooks';
 
@@ -107,8 +109,20 @@ function AuthenticatedHome({
   const [search, setSearch] = useState('');
   const [collectionId, setCollectionId] = useState('');
   const [tagId, setTagId] = useState('');
+  const [viewRelicId, setViewRelicId] = useState<string | null>(null);
+  const [addRelicOpen, setAddRelicOpen] = useState(false);
+  const [addRelicType, setAddRelicType] = useState<'url' | 'note'>('url');
 
-  const { data, isLoading, error } = useHomeData(search, collectionId, tagId);
+  const { data, isLoading, error, refetch } = useHomeData(
+    search,
+    collectionId,
+    tagId
+  );
+
+  function openAdd(type: 'url' | 'note') {
+    setAddRelicType(type);
+    setAddRelicOpen(true);
+  }
 
   const hasFilters = search || collectionId || tagId;
 
@@ -118,8 +132,16 @@ function AuthenticatedHome({
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-semibold">Your Library</h1>
+            <Button
+              onClick={() => {
+                setAddRelicType('url');
+                setAddRelicOpen(true);
+              }}
+            >
+              Save
+            </Button>
           </div>
 
           <SearchFilters
@@ -224,8 +246,10 @@ function AuthenticatedHome({
                   </p>
                   {!hasFilters && (
                     <div className="flex gap-4">
-                      <Button disabled>Save a Link</Button>
-                      <Button variant="outline" disabled>
+                      <Button onClick={() => openAdd('url')}>
+                        Save a Link
+                      </Button>
+                      <Button variant="outline" onClick={() => openAdd('note')}>
                         Write a Note
                       </Button>
                     </div>
@@ -236,6 +260,21 @@ function AuthenticatedHome({
           </Card>
         </div>
       </main>
+
+      <ViewRelicDialog
+        relicId={viewRelicId}
+        open={viewRelicId !== null}
+        onOpenChange={(open) => {
+          if (!open) setViewRelicId(null);
+        }}
+      />
+
+      <AddRelicDialog
+        open={addRelicOpen}
+        initialType={addRelicType}
+        onOpenChange={setAddRelicOpen}
+        onSaved={refetch}
+      />
     </div>
   );
 }
