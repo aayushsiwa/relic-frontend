@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/card';
 import { Navbar } from '@/lib/components/Navbar';
 import { SearchFilters } from '@/lib/components/SearchFilters';
+import { ViewRelicDialog } from '@/lib/components/ViewRelicDialog';
+import { EditRelicDialog } from '@/lib/container/Library/EditRelicDialog';
 
 import { useHomeData } from './Home.hooks';
 
