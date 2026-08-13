@@ -178,6 +178,45 @@ const STOPWORDS = new Set(
   )
 );
 
+// Hostname segments that never make useful tags: generic subdomains, common
+// TLDs, and ccTLDs.
+const GENERIC_HOST_PARTS = new Set(
+  `www www2 m mobile web home site app my api blog news forum forums wiki mail
+   static cdn secure store shop buy v2 old new
+   com org net io co info biz me tv xyz app dev ai edu gov mil int
+   uk us ca au de fr es it pt nl be ch at se no dk fi ie pl cz sk hu ro bg gr tr
+   ru ua in cn jp kr sg my th vn ph id nz za br mx ar cl pe ve il sa ae eg ma ng
+   ke gh tz ug cy mt lu is lt lv ee by kz uz ge am az bd pk np lk mm kh la tw
+   hk qa kw bh om jo lb sy iq ir af ye sd et so dj er ci sn ml bf ne tg bj gn
+   gm gw sl lr cm ga cd cg ao zm zw mw mz mg mu sc`.split(/\s+/)
+);
+
+// Language-code subdomains (en.wikipedia.org) that shouldn't become tags.
+const LANG_CODES = new Set(
+  `en de fr es it pt ru zh ja ko ar hi tr nl pl sv no da fi cs hu ro el he th
+   vi id ms bn ta te ml ur fa uk bg hr sk sl lt lv et is sq sr mk ka hy az uz
+   kk mn ne si km lo my am sw af ca eu gl cy ga gd br fy lb mt ht la tl
+   hindi bengali`.split(/\s+/)
+);
+
+// Split a hostname into tag-worthy words: drop the TLD, generic subdomains,
+// and language prefixes, and split dotted/hyphenated names into parts.
+// xda.developers.com -> [xda, developers]; en.wikipedia.org -> [wikipedia].
+function domainTags(domain: string): string[] {
+  return domain
+    .toLowerCase()
+    .split(/[.-]/)
+    .filter(
+      (part) =>
+        part &&
+        part.length >= 3 &&
+        !/^www\d*$/.test(part) &&
+        !GENERIC_HOST_PARTS.has(part) &&
+        !LANG_CODES.has(part)
+    )
+    .slice(0, 4);
+}
+
 // Score keywords from title, description, and body text by weighted frequency.
 // Title/description words are treated as highly relevant; body words must
 // repeat to count, so one-off navigation terms don't become tags.
@@ -213,13 +252,15 @@ function deriveKeywords(title?: string, description?: string, body = '') {
     .map(([word]) => word);
 }
 
-// Combine explicit meta tags (keywords, og:tag, article:tag) with keywords
-// derived from the article body so every relic ends up with some tags.
+// Combine explicit meta tags (keywords, og:tag, article:tag), site-name tags
+// derived from the hostname, and keywords derived from the article body so
+// every relic ends up with some tags.
 function extractTags(
   html: string,
   title?: string,
   description?: string,
-  body = ''
+  body = '',
+  domain?: string
 ): string[] {
   const tags: string[] = [];
   const seen = new Set<string>();
@@ -246,6 +287,11 @@ function extractTags(
       continue;
     }
     for (const part of contentMatch[1].split(',')) push(part);
+  }
+
+  // Include site-name tags from the hostname (e.g. xda, developers).
+  if (domain) {
+    for (const part of domainTags(domain)) push(part);
   }
 
   // Trim to the intro so repetitive article prose doesn't drown out topics.
@@ -334,7 +380,7 @@ export async function extractMetadata(url: string): Promise<ExtractedMetadata> {
     previewImage,
     favicon,
     domain,
-    tags: extractTags(html, meta.title, meta.description, body),
+    tags: extractTags(html, meta.title, meta.description, body, domain),
   };
 }
 
