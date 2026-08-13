@@ -209,6 +209,9 @@ export function Library({ email }: { email: string }) {
         onOpenChange={(open) => {
           if (!open) setViewingRelicId(null);
         }}
+        onEdit={() => {
+          if (viewingRelicId) setEditingRelicId(viewingRelicId);
+        }}
       />
 
       <EditRelicDialog

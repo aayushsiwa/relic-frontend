@@ -18,6 +18,8 @@ import { Navbar } from '@/lib/components/Navbar';
 import { SearchFilters } from '@/lib/components/SearchFilters';
 import { ViewRelicDialog } from '@/lib/components/ViewRelicDialog';
 
+import { EditRelicDialog } from '@/lib/container/Library/EditRelicDialog';
+
 import { useHomeData } from './Home.hooks';
 
 dayjs.extend(relativeTime);
@@ -38,7 +40,9 @@ function Landing() {
   return (
     <div className="flex flex-col flex-1">
       <header className="flex items-center justify-between px-6 py-4 md:px-10">
-        <span className="text-lg font-semibold tracking-tight">Relic</span>
+        <span className="text-lg font-semibold tracking-tight cursor-pointer select-none">
+          Relic
+        </span>
         <div className="flex items-center gap-4">
           <Link href="/login">
             <Button variant="ghost">Login</Button>
@@ -68,7 +72,7 @@ function Landing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-24 grid max-w-5xl gap-8 md:grid-cols-3">
+        <div className="mx-auto mt-24 grid w-full md:w-3xl gap-2 md:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Capture</CardTitle>
@@ -110,6 +114,7 @@ function AuthenticatedHome({
   const [collectionId, setCollectionId] = useState('');
   const [tagId, setTagId] = useState('');
   const [viewRelicId, setViewRelicId] = useState<string | null>(null);
+  const [editingRelicId, setEditingRelicId] = useState<string | null>(null);
   const [addRelicOpen, setAddRelicOpen] = useState(false);
   const [addRelicType, setAddRelicType] = useState<'url' | 'note'>('url');
 
@@ -267,6 +272,18 @@ function AuthenticatedHome({
         onOpenChange={(open) => {
           if (!open) setViewRelicId(null);
         }}
+        onEdit={() => {
+          if (viewRelicId) setEditingRelicId(viewRelicId);
+        }}
+      />
+
+      <EditRelicDialog
+        relicId={editingRelicId}
+        open={editingRelicId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingRelicId(null);
+        }}
+        onSaved={refetch}
       />
 
       <AddRelicDialog

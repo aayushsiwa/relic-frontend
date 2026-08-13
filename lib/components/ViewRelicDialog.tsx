@@ -19,10 +19,12 @@ export function ViewRelicDialog({
   relicId,
   open,
   onOpenChange,
+  onEdit,
 }: {
   relicId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: () => void;
 }) {
   const [relic, setRelic] = useState<RelicWithRelations | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,9 +148,21 @@ export function ViewRelicDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
+          {onEdit ? (
+            <Button
+              className="bg-yellow-500/15 text-yellow-700 hover:bg-yellow-500/25 dark:bg-yellow-500/20 dark:text-yellow-300 dark:hover:bg-yellow-500/30"
+              onClick={() => {
+                onOpenChange(false);
+                onEdit();
+              }}
+            >
+              Edit
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
