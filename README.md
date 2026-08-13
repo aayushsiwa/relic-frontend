@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Relic
+
+Your personal knowledge archive. Save articles, notes, and links — organize them
+with collections and tags, and rediscover anything instantly.
+
+## Features
+
+- **Save anything** — URLs (with automatic metadata enrichment: title,
+  description, preview image, favicon, and tags) or plain notes
+- **Organize** — collections with colors, and tags (auto-derived from page
+  content + site name when you save a link)
+- **Find** — full-text search plus collection/tag filters, paginated masonry grid
+- **View & edit** — read-only relic viewer with image lightbox, edit dialog,
+  and delete
+- **Auth** — email/password + GitHub OAuth, email verification, forgot/reset
+  password, change email, profile picture
+- **API access** — token auth (bearer plugin) for the browser extension
+
+## Stack
+
+- Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, pnpm
+- shadcn/ui (`base-lyra` style, `@base-ui/react` primitives)
+- Drizzle ORM over `pg` for resource tables
+- better-auth for authentication
+- `@extractus/article-extractor`, `metascraper`, `cheerio` for link enrichment
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env` requirements from the checklist below into your own `.env` file:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable                | Required | Purpose                                       |
+| ----------------------- | -------- | --------------------------------------------- |
+| `DATABASE_URL`          | yes      | Postgres connection string                    |
+| `BETTER_AUTH_SECRET`    | yes      | better-auth signing secret                    |
+| `BETTER_AUTH_URL`       | yes      | Public app URL (e.g. `http://localhost:3000`) |
+| `GITHUB_CLIENT_ID`      | no       | GitHub OAuth app client ID                    |
+| `GITHUB_CLIENT_SECRET`  | no       | GitHub OAuth app client secret                |
+| `EMAIL_SERVICE_URL`     | yes*     | Outbound email service URL                    |
+| `EMAIL_SERVICE_API_KEY` | yes*     | Outbound email service API key                |
 
-## Learn More
+\* Required for signup email verification, forgot/reset password, and change
+email. Without it, those flows will fail.
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Set up the database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Apply the migrations. better-auth tables are in `better-auth_migrations/`
+(apply manually to Postgres), then run the Drizzle migrations:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+psql "$DATABASE_URL" -f better-auth_migrations/*.sql
+pnpm db:migrate
+```
 
-## Deploy on Vercel
+### 4. Run the dev server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000).
+
+## GitHub OAuth
+
+1. Register an OAuth app at [GitHub Developer settings](https://github.com/settings/developers).
+   - Homepage URL: `http://localhost:3000`
+   - Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
+2. Copy the Client ID and Client Secret into `GITHUB_CLIENT_ID` and
+   `GITHUB_CLIENT_SECRET`.
+3. Restart the dev server. Login/signup pages then show a GitHub button.
+
+## Email setup
+
+The app sends verification, password-reset, and change-email emails through a
+personal [email-service](https://github.com/aayushsiwa/email-service). It posts
+`{ to, subject, text, html }` to `EMAIL_SERVICE_URL?key=EMAIL_SERVICE_API_KEY`.
+Point these env vars at your email-service instance (or swap
+`lib/email.ts` for any provider).
+
+## API
+
+See [API.md](./API.md) for the full REST reference, including token auth for
+API clients.
+
+## Available scripts
+
+- `pnpm dev` — dev server
+- `pnpm build` / `pnpm start` — production build/serve
+- `pnpm lint` / `pnpm type-check` / `pnpm format` / `pnpm format:check` — code quality
+- `pnpm run-checks` — lint + type-check + format:check
+- `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:push` — Drizzle DB tooling
