@@ -89,6 +89,14 @@ Point these env vars at your email-service instance (or swap
 See [API.md](./API.md) for the full REST reference, including token auth for
 API clients.
 
+## Browser extension
+
+A companion Chromium extension lets you save the current tab straight into your
+library. See
+[relic-chromium-extension](https://github.com/aayushsiwa/relic-chromium-extension.git)
+(also checked out at `../relic-extension`). It authenticates via the bearer
+token shown in **Settings** (`/settings`) and posts to `/api/relics`.
+
 ## Available scripts
 
 - `pnpm dev` — dev server
