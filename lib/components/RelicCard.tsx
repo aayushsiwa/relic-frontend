@@ -1,6 +1,6 @@
 'use client';
 
-import { PencilIcon } from '@phosphor-icons/react';
+import { CircleNotch, PencilIcon } from '@phosphor-icons/react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import Image from 'next/image';
@@ -26,19 +26,22 @@ export function RelicCard({
       className="relative flex flex-col w-full cursor-pointer"
       onClick={onView}
     >
-      {relic.previewImage && (
-        <div className="relative w-full aspect-square bg-muted">
-          <Image
+      {relic.previewImage ? (
+        <div className={'relative w-full'}>
+          <img
             src={relic.previewImage}
             alt={relic.title || relic.url || 'Preview'}
-            fill
-            unoptimized
-            loading="eager"
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 hover:scale-105"
           />
         </div>
-      )}
+      ) : relic.isProcessing ? (
+        <div className="relative flex w-full aspect-square items-center justify-center bg-muted">
+          <CircleNotch
+            className="animate-spin text-muted-foreground"
+            size={28}
+          />
+        </div>
+      ) : null}
       <CardContent className="pb-2 px-4 flex flex-col gap-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -55,6 +58,12 @@ export function RelicCard({
             )}
             {relic.title && (
               <p className="truncate text-base font-medium">{relic.title}</p>
+            )}
+            {relic.isProcessing && (
+              <Badge variant="secondary" className="shrink-0 gap-1 text-[10px]">
+                <CircleNotch className="animate-spin" size={10} />
+                Processing
+              </Badge>
             )}
           </div>
           {relic.url && (

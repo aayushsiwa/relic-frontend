@@ -1,0 +1,1 @@
+ALTER TABLE "relics" ADD COLUMN "is_processing" boolean DEFAULT false NOT NULL;

@@ -66,5 +66,14 @@ export function useLibrary(
 
   const refetch = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // Poll while any relic is still being enriched so cards update in place.
+  const hasProcessing = (data?.relics ?? []).some((r) => r.isProcessing);
+
+  useEffect(() => {
+    if (!hasProcessing) return;
+    const id = setInterval(refetch, 3000);
+    return () => clearInterval(id);
+  }, [hasProcessing, refetch]);
+
   return { data, isLoading, error, refetch };
 }
