@@ -201,7 +201,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                   onClick={() =>
                     authClient.signIn.social({
                       provider: 'github',
-                      callbackURL: '/dashboard',
+                      callbackURL: '/',
                     })
                   }
                 >

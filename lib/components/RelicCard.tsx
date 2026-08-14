@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleNotch, PencilIcon } from '@phosphor-icons/react';
+import { CircleNotchIcon, PencilIcon } from '@phosphor-icons/react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import Image from 'next/image';
@@ -36,7 +36,7 @@ export function RelicCard({
         </div>
       ) : relic.isProcessing ? (
         <div className="relative flex w-full aspect-square items-center justify-center bg-muted">
-          <CircleNotch
+          <CircleNotchIcon
             className="animate-spin text-muted-foreground"
             size={28}
           />
@@ -61,7 +61,7 @@ export function RelicCard({
             )}
             {relic.isProcessing && (
               <Badge variant="secondary" className="shrink-0 gap-1 text-[10px]">
-                <CircleNotch className="animate-spin" size={10} />
+                <CircleNotchIcon className="animate-spin" size={10} />
                 Processing
               </Badge>
             )}
@@ -97,7 +97,7 @@ export function RelicCard({
           ))}
         </div>
       </CardContent>
-      <CardFooter className="flex items-end justify-between px-4 py-1">
+      <CardFooter className="flex items-center justify-between px-4 py-1">
         <span className="text-xs text-muted-foreground">
           {dayjs(relic.createdAt).fromNow()}
         </span>

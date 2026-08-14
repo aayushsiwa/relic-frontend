@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Masonry from 'react-masonry-css';
 
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,17 @@ export function Library({
     setPage(1);
     setAppliedSearch(search);
   }
+
+  // Debounce typing: auto-apply the search after a pause instead of waiting
+  // for Enter/button, while still resetting to page 1.
+  useEffect(() => {
+    if (search === appliedSearch) return;
+    const id = setTimeout(() => {
+      setPage(1);
+      setAppliedSearch(search);
+    }, 350);
+    return () => clearTimeout(id);
+  }, [search, appliedSearch]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') handleSearch();

@@ -45,7 +45,7 @@ export function LoginForm({
           {
             email,
             password,
-            callbackURL: '/dashboard',
+            callbackURL: '/',
           },
           {}
         );
@@ -59,7 +59,7 @@ export function LoginForm({
             setError(authError.message || 'Login failed.');
           }
         } else {
-          router.push('/dashboard');
+          router.push('/');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unexpected error.');
@@ -172,7 +172,7 @@ export function LoginForm({
                   onClick={() =>
                     authClient.signIn.social({
                       provider: 'github',
-                      callbackURL: '/dashboard',
+                      callbackURL: '/',
                     })
                   }
                 >
