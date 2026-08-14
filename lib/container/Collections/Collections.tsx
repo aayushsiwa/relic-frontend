@@ -10,7 +10,11 @@ import { Navbar } from '@/lib/components/Navbar';
 
 import { useCollections } from './Collections.hooks';
 
-export function Collections({ email }: { email: string }) {
+export function Collections({
+  user,
+}: {
+  user: { name: string; email: string; image: string | null };
+}) {
   const { collections, isLoading, error, create, update, remove } =
     useCollections();
   const [newName, setNewName] = useState('');
@@ -51,7 +55,7 @@ export function Collections({ email }: { email: string }) {
 
   return (
     <div className="flex flex-col flex-1">
-      <Navbar email={email} />
+      <Navbar user={user} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-5xl">

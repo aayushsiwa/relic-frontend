@@ -12,8 +12,13 @@ const navItems = [
   { href: '/settings', label: 'Settings' },
 ];
 
-export function Navbar({ email }: { email: string }) {
+export function Navbar({
+  user,
+}: {
+  user: { name: string; email: string; image: string | null };
+}) {
   const pathname = usePathname();
+  const initial = user.name.trim()[0]?.toUpperCase() ?? '?';
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4 md:px-10">
@@ -34,7 +39,22 @@ export function Navbar({ email }: { email: string }) {
           </a>
         ))}
         <ThemeToggle />
-        <span className="text-sm text-muted-foreground">{email}</span>
+        <a
+          href="/settings"
+          title={user.email}
+          className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border text-xs font-medium"
+          style={
+            user.image
+              ? {
+                  backgroundImage: `url(${user.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : undefined
+          }
+        >
+          {!user.image && initial}
+        </a>
       </div>
     </header>
   );

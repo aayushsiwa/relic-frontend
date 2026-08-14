@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,9 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,19 +45,77 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             email,
             password,
             name,
-            callbackURL: '/dashboard',
           },
           {}
         );
         if (signUpErr) {
           setError(signUpErr.message || 'Signup failed.');
         } else {
-          router.push('/dashboard');
+          setPendingEmail(email);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unexpected error.');
       }
     });
+  }
+
+  async function resendVerification() {
+    if (!pendingEmail) return;
+    setError(null);
+    setResent(false);
+    setIsResending(true);
+    try {
+      const { error: resendErr } = await authClient.sendVerificationEmail({
+        email: pendingEmail,
+        callbackURL: '/',
+      });
+      if (resendErr) {
+        setError(resendErr.message || 'Failed to resend.');
+      } else {
+        setResent(true);
+      }
+    } catch {
+      setError('Failed to resend verification email.');
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+  if (pendingEmail) {
+    return (
+      <Card {...props}>
+        <CardHeader>
+          <CardTitle>Verify your email</CardTitle>
+          <CardDescription>
+            We sent a verification link to {pendingEmail}. Click it to activate
+            your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {resent && (
+            <p className="text-sm font-normal text-primary">
+              Verification email resent.
+            </p>
+          )}
+          {error && (
+            <p className="text-sm font-normal text-destructive">{error}</p>
+          )}
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={resendVerification}
+              disabled={isResending}
+            >
+              {isResending ? 'Sending...' : 'Resend verification email'}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Already verified? <a href="/login">Log in</a>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -136,8 +195,17 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <Button type="submit" disabled={isPending}>
                   {isPending ? 'Creating...' : 'Create Account'}
                 </Button>
-                <Button variant="outline" type="button" disabled>
-                  Sign up with Google
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() =>
+                    authClient.signIn.social({
+                      provider: 'github',
+                      callbackURL: '/dashboard',
+                    })
+                  }
+                >
+                  Sign up with GitHub
                 </Button>
                 <FieldDescription className="px-6 text-center">
                   Already have an account? <a href="/login">Sign in</a>

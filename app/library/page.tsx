@@ -12,5 +12,13 @@ export default async function Page() {
     redirect('/login');
   }
 
-  return <Library email={session.user.email ?? ''} />;
+  return (
+    <Library
+      user={{
+        name: session.user.name ?? '',
+        email: session.user.email ?? '',
+        image: session.user.image ?? null,
+      }}
+    />
+  );
 }

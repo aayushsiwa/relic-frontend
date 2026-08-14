@@ -23,7 +23,11 @@ import { ViewRelicDialog } from '@/lib/components/ViewRelicDialog';
 import { EditRelicDialog } from './EditRelicDialog';
 import { useLibrary } from './Library.hooks';
 
-export function Library({ email }: { email: string }) {
+export function Library({
+  user,
+}: {
+  user: { name: string; email: string; image: string | null };
+}) {
   const [search, setSearch] = useState('');
   const [collectionId, setCollectionId] = useState('');
   const [tagId, setTagId] = useState('');
@@ -87,7 +91,7 @@ export function Library({ email }: { email: string }) {
 
   return (
     <div className="flex flex-col flex-1">
-      <Navbar email={email} />
+      <Navbar user={user} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-7xl">
