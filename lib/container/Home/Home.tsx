@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { AddRelicDialog } from '@/lib/components/AddRelicDialog';
 import { Navbar } from '@/lib/components/Navbar';
 import { SearchFilters } from '@/lib/components/SearchFilters';
 import { ViewRelicDialog } from '@/lib/components/ViewRelicDialog';
@@ -25,7 +26,11 @@ dayjs.extend(relativeTime);
 export function Home({
   user,
 }: {
-  user: { name?: string | null; email?: string | null } | null;
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
 }) {
   if (!user) {
     return <Landing />;
@@ -38,7 +43,9 @@ function Landing() {
   return (
     <div className="flex flex-col flex-1">
       <header className="flex items-center justify-between px-6 py-4 md:px-10">
-        <span className="text-lg font-semibold tracking-tight">Relic</span>
+        <span className="text-lg font-semibold tracking-tight cursor-pointer select-none">
+          Relic
+        </span>
         <div className="flex items-center gap-4">
           <Link href="/login">
             <Button variant="ghost">Login</Button>
@@ -68,7 +75,7 @@ function Landing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-24 grid max-w-5xl gap-8 md:grid-cols-3">
+        <div className="mx-auto mt-24 grid w-full md:w-3xl gap-2 md:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Capture</CardTitle>
@@ -104,24 +111,55 @@ function Landing() {
 function AuthenticatedHome({
   user,
 }: {
-  user: { name?: string | null; email?: string | null };
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 }) {
   const [search, setSearch] = useState('');
   const [collectionId, setCollectionId] = useState('');
   const [tagId, setTagId] = useState('');
+  const [viewRelicId, setViewRelicId] = useState<string | null>(null);
+  const [editingRelicId, setEditingRelicId] = useState<string | null>(null);
+  const [addRelicOpen, setAddRelicOpen] = useState(false);
+  const [addRelicType, setAddRelicType] = useState<'url' | 'note'>('url');
 
-  const { data, isLoading, error } = useHomeData(search, collectionId, tagId);
+  const { data, isLoading, error, refetch } = useHomeData(
+    search,
+    collectionId,
+    tagId
+  );
+
+  function openAdd(type: 'url' | 'note') {
+    setAddRelicType(type);
+    setAddRelicOpen(true);
+  }
 
   const hasFilters = search || collectionId || tagId;
 
   return (
     <div className="flex flex-col flex-1">
-      <Navbar email={user.email ?? ''} />
+      <Navbar
+        user={{
+          name: user.name ?? '',
+          email: user.email ?? '',
+          image: user.image ?? null,
+        }}
+      />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-semibold">Your Library</h1>
+            <Button
+              onClick={() => {
+                setAddRelicType('url');
+                setAddRelicOpen(true);
+              }}
+            >
+              Save
+            </Button>
           </div>
 
           <SearchFilters
@@ -193,7 +231,11 @@ function AuthenticatedHome({
               ) : data && data.recentRelics.length > 0 ? (
                 <ul className="divide-y">
                   {data.recentRelics.map((relic) => (
-                    <li key={relic.id} className="flex items-center gap-3 py-3">
+                    <li
+                      key={relic.id}
+                      onClick={() => setViewRelicId(relic.id)}
+                      className="flex items-center gap-3 py-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 -mx-2 transition-colors"
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-medium">
                           {/*|| relic.url ||*/}
@@ -226,8 +268,10 @@ function AuthenticatedHome({
                   </p>
                   {!hasFilters && (
                     <div className="flex gap-4">
-                      <Button disabled>Save a Link</Button>
-                      <Button variant="outline" disabled>
+                      <Button onClick={() => openAdd('url')}>
+                        Save a Link
+                      </Button>
+                      <Button variant="outline" onClick={() => openAdd('note')}>
                         Write a Note
                       </Button>
                     </div>
@@ -238,6 +282,33 @@ function AuthenticatedHome({
           </Card>
         </div>
       </main>
+
+      <ViewRelicDialog
+        relicId={viewRelicId}
+        open={viewRelicId !== null}
+        onOpenChange={(open) => {
+          if (!open) setViewRelicId(null);
+        }}
+        onEdit={() => {
+          if (viewRelicId) setEditingRelicId(viewRelicId);
+        }}
+      />
+
+      <EditRelicDialog
+        relicId={editingRelicId}
+        open={editingRelicId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingRelicId(null);
+        }}
+        onSaved={refetch}
+      />
+
+      <AddRelicDialog
+        open={addRelicOpen}
+        initialType={addRelicType}
+        onOpenChange={setAddRelicOpen}
+        onSaved={refetch}
+      />
     </div>
   );
 }

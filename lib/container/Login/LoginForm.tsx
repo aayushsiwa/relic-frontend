@@ -30,11 +30,15 @@ export function LoginForm({
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNeedsVerification(false);
     startTransition(async () => {
       try {
         const { error: authError } = await authClient.signIn.email(
@@ -46,7 +50,14 @@ export function LoginForm({
           {}
         );
         if (authError) {
-          setError(authError.message || 'Login failed.');
+          if (
+            authError.code === 'EMAIL_NOT_VERIFIED' ||
+            authError.message === 'Email not verified'
+          ) {
+            setNeedsVerification(true);
+          } else {
+            setError(authError.message || 'Login failed.');
+          }
         } else {
           router.push('/');
         }
@@ -54,6 +65,27 @@ export function LoginForm({
         setError(err instanceof Error ? err.message : 'Unexpected error.');
       }
     });
+  }
+
+  async function resendVerification() {
+    setError(null);
+    setResent(false);
+    setIsResending(true);
+    try {
+      const { error: resendErr } = await authClient.sendVerificationEmail({
+        email,
+        callbackURL: '/',
+      });
+      if (resendErr) {
+        setError(resendErr.message || 'Failed to resend.');
+      } else {
+        setResent(true);
+      }
+    } catch {
+      setError('Failed to resend verification email.');
+    } finally {
+      setIsResending(false);
+    }
   }
 
   return (
@@ -84,7 +116,7 @@ export function LoginForm({
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <a
-                    href="#"
+                    href="/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
                     Forgot your password?
@@ -99,6 +131,32 @@ export function LoginForm({
                   disabled={isPending}
                 />
               </Field>
+              {needsVerification && (
+                <Field>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-normal text-destructive">
+                      Your email isn&apos;t verified yet.
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      A new verification link was sent to {email}. Check your
+                      inbox.
+                    </span>
+                  </div>
+                  {resent && (
+                    <p className="text-xs font-normal text-primary">
+                      Verification email resent.
+                    </p>
+                  )}
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={resendVerification}
+                    disabled={isResending}
+                  >
+                    {isResending ? 'Sending...' : 'Resend verification email'}
+                  </Button>
+                </Field>
+              )}
               {error && (
                 <Field>
                   <FieldError>{error}</FieldError>

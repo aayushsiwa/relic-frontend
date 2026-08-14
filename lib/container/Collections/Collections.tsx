@@ -10,7 +10,11 @@ import { Navbar } from '@/lib/components/Navbar';
 
 import { useCollections } from './Collections.hooks';
 
-export function Collections({ email }: { email: string }) {
+export function Collections({
+  user,
+}: {
+  user: { name: string; email: string; image: string | null };
+}) {
   const { collections, isLoading, error, create, update, remove } =
     useCollections();
   const [newName, setNewName] = useState('');
@@ -19,6 +23,7 @@ export function Collections({ email }: { email: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editColor, setEditColor] = useState('#3b82f6');
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -36,19 +41,21 @@ export function Collections({ email }: { email: string }) {
     setEditingId(c.id);
     setEditName(c.name);
     setEditDescription(c.description ?? '');
+    setEditColor(c.color ?? '#3b82f6');
   }
 
   async function handleUpdate(id: string) {
     await update(id, {
       name: editName,
       description: editDescription || undefined,
+      color: editColor,
     });
     setEditingId(null);
   }
 
   return (
     <div className="flex flex-col flex-1">
-      <Navbar email={email} />
+      <Navbar user={user} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-5xl">
@@ -133,6 +140,12 @@ export function Collections({ email }: { email: string }) {
                           value={editDescription}
                           onChange={(e) => setEditDescription(e.target.value)}
                           placeholder="Description"
+                        />
+                        <input
+                          type="color"
+                          value={editColor}
+                          onChange={(e) => setEditColor(e.target.value)}
+                          className="h-8 w-12 cursor-pointer rounded border bg-transparent"
                         />
                         <div className="flex gap-2">
                           <Button size="sm" onClick={() => handleUpdate(c.id)}>

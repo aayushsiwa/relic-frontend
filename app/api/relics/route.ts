@@ -1,9 +1,10 @@
 import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { headers } from 'next/headers';
-import { NextRequest } from 'next/server';
+import { NextRequest, after } from 'next/server';
 
 import { auth } from '@/lib/auth';
 import { db, schema } from '@/lib/db';
+import { extractMetadata, resolveTagIds } from '@/lib/metadata';
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -169,6 +170,8 @@ export async function POST(request: NextRequest) {
     contentType,
   } = body;
 
+  const shouldEnrich = Boolean(url && (contentType ?? 'url') === 'url');
+
   let relic;
 
   try {
@@ -184,6 +187,7 @@ export async function POST(request: NextRequest) {
         previewImage,
         favicon,
         contentType: contentType ?? 'url',
+        isProcessing: shouldEnrich,
       })
       .returning();
   } catch (err: unknown) {
@@ -214,6 +218,56 @@ export async function POST(request: NextRequest) {
         tagId,
       }))
     );
+  }
+
+  if (shouldEnrich) {
+    // Scrape asynchronously so relic creation stays fast; only fill fields the
+    // user hasn't already set.
+    after(async () => {
+      const reload = await db
+        .select()
+        .from(schema.relics)
+        .where(eq(schema.relics.id, relic.id))
+        .limit(1);
+      const current = reload[0];
+      if (!current) return;
+
+      try {
+        const metadata = await extractMetadata(url);
+        await db
+          .update(schema.relics)
+          .set({
+            title: current.title ?? metadata.title,
+            description: current.description ?? metadata.description,
+            previewImage: current.previewImage ?? metadata.previewImage,
+            favicon: current.favicon ?? metadata.favicon,
+            domain: current.domain ?? metadata.domain,
+            isProcessing: false,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.relics.id, relic.id));
+
+        if (metadata.tags.length) {
+          const autoTagIds = await resolveTagIds(
+            session.user.id,
+            metadata.tags
+          );
+          await db
+            .insert(schema.relicTags)
+            .values(
+              autoTagIds.map((tagId: string) => ({ relicId: relic.id, tagId }))
+            )
+            .onConflictDoNothing();
+        }
+      } catch {
+        // Never leave a relic stuck in processing.
+        await db
+          .update(schema.relics)
+          .set({ isProcessing: false })
+          .where(eq(schema.relics.id, relic.id))
+          .catch(() => {});
+      }
+    });
   }
 
   return Response.json(relic, { status: 201 });

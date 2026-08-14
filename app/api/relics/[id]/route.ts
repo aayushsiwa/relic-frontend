@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 
 import { auth } from '@/lib/auth';
 import { db, schema } from '@/lib/db';
+import { extractMetadata, resolveTagIds } from '@/lib/metadata';
 
 export async function GET(
   _request: NextRequest,
@@ -76,7 +77,7 @@ export async function PUT(
   } = body;
 
   const [existing] = await db
-    .select({ id: schema.relics.id })
+    .select({ id: schema.relics.id, url: schema.relics.url })
     .from(schema.relics)
     .where(
       and(eq(schema.relics.id, id), eq(schema.relics.userId, session.user.id))
@@ -85,6 +86,31 @@ export async function PUT(
 
   if (!existing) {
     return Response.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const enriched: {
+    title?: string;
+    description?: string;
+    previewImage?: string;
+    favicon?: string;
+    domain?: string;
+  } = {};
+  let autoTagNames: string[] = [];
+
+  if (url && (contentType ?? 'url') === 'url' && url !== existing.url) {
+    try {
+      const metadata = await extractMetadata(url);
+      if (title === undefined) enriched.title = metadata.title;
+      if (description === undefined)
+        enriched.description = metadata.description;
+      if (previewImage === undefined)
+        enriched.previewImage = metadata.previewImage;
+      if (favicon === undefined) enriched.favicon = metadata.favicon;
+      if (domain === undefined) enriched.domain = metadata.domain;
+      autoTagNames = metadata.tags;
+    } catch {
+      // Metadata is best-effort; never fail the update over enrichment.
+    }
   }
 
   let relic;
@@ -102,6 +128,7 @@ export async function PUT(
         favicon,
         contentType,
         updatedAt: new Date(),
+        ...enriched,
       })
       .where(eq(schema.relics.id, id))
       .returning();
@@ -131,12 +158,16 @@ export async function PUT(
     }
   }
 
-  if (tagIds !== undefined) {
+  if (tagIds !== undefined || autoTagNames.length) {
     await db.delete(schema.relicTags).where(eq(schema.relicTags.relicId, id));
-    if (tagIds.length) {
+    const autoTagIds = autoTagNames.length
+      ? await resolveTagIds(session.user.id, autoTagNames)
+      : [];
+    const allTagIds = [...new Set([...(tagIds ?? []), ...autoTagIds])];
+    if (allTagIds.length) {
       await db
         .insert(schema.relicTags)
-        .values(tagIds.map((tagId: string) => ({ relicId: id, tagId })));
+        .values(allTagIds.map((tagId: string) => ({ relicId: id, tagId })));
     }
   }
 

@@ -36,6 +36,7 @@ export const relics = pgTable(
     domain: text('domain'),
     previewImage: text('preview_image'),
     favicon: text('favicon'),
+    isProcessing: boolean('is_processing').notNull().default(false),
     contentType: text('content_type', { enum: ['url', 'note', 'file'] })
       .notNull()
       .default('url'),
