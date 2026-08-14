@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Masonry from 'react-masonry-css';
 
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Pagination,
@@ -13,6 +14,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { AddRelicDialog } from '@/lib/components/AddRelicDialog';
 import { Navbar } from '@/lib/components/Navbar';
 import { RelicCard } from '@/lib/components/RelicCard';
 import { SearchFilters } from '@/lib/components/SearchFilters';
@@ -30,6 +32,7 @@ export function Library({ email }: { email: string }) {
 
   const [viewingRelicId, setViewingRelicId] = useState<string | null>(null);
   const [editingRelicId, setEditingRelicId] = useState<string | null>(null);
+  const [addRelicOpen, setAddRelicOpen] = useState(false);
 
   const { data, isLoading, error, refetch } = useLibrary(
     appliedSearch,
@@ -88,7 +91,10 @@ export function Library({ email }: { email: string }) {
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-6 text-2xl font-semibold">Library</h1>
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-semibold">Library</h1>
+            <Button onClick={() => setAddRelicOpen(true)}>Save</Button>
+          </div>
 
           <SearchFilters
             search={search}
@@ -203,6 +209,9 @@ export function Library({ email }: { email: string }) {
         onOpenChange={(open) => {
           if (!open) setViewingRelicId(null);
         }}
+        onEdit={() => {
+          if (viewingRelicId) setEditingRelicId(viewingRelicId);
+        }}
       />
 
       <EditRelicDialog
@@ -211,6 +220,12 @@ export function Library({ email }: { email: string }) {
         onOpenChange={(open) => {
           if (!open) setEditingRelicId(null);
         }}
+        onSaved={refetch}
+      />
+
+      <AddRelicDialog
+        open={addRelicOpen}
+        onOpenChange={setAddRelicOpen}
         onSaved={refetch}
       />
     </div>

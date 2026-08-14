@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -19,13 +19,16 @@ export function ViewRelicDialog({
   relicId,
   open,
   onOpenChange,
+  onEdit,
 }: {
   relicId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: () => void;
 }) {
   const [relic, setRelic] = useState<RelicWithRelations | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [prevRelicId, setPrevRelicId] = useState(relicId);
   const [prevOpen, setPrevOpen] = useState(open);
 
@@ -70,14 +73,11 @@ export function ViewRelicDialog({
         ) : (
           <div className="space-y-4">
             {relic.previewImage && (
-              <Image
+              <img
                 src={relic.previewImage}
                 alt={relic.title ?? 'Relic preview'}
-                width={800}
-                height={256}
-                className="w-full rounded border object-cover max-h-64"
-                unoptimized
-                priority
+                className="object-contain w-full transition-transform duration-300 max-h-64 cursor-zoom-in"
+                onClick={() => setImagePreviewOpen(true)}
               />
             )}
 
@@ -146,11 +146,48 @@ export function ViewRelicDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
+          {onEdit ? (
+            <Button
+              className="bg-yellow-500/15 text-yellow-700 hover:bg-yellow-500/25 dark:bg-yellow-500/20 dark:text-yellow-300 dark:hover:bg-yellow-500/30"
+              onClick={() => {
+                onOpenChange(false);
+                onEdit();
+              }}
+            >
+              Edit
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
+        <DialogContent
+          className="p-0 sm:max-w-[90vw] bg-black/20 ring-white/10 backdrop-blur-md"
+          showCloseButton={false}
+        >
+          {relic?.previewImage && (
+            <img
+              src={relic.previewImage}
+              alt={relic.title ?? 'Relic preview'}
+              className="object-contain w-full h-full max-h-[85vh] cursor-zoom-out"
+              onClick={() => setImagePreviewOpen(false)}
+            />
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-2 right-2 text-white/80 hover:text-white"
+            onClick={() => setImagePreviewOpen(false)}
+            aria-label="Close preview"
+          >
+            <XIcon />
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
