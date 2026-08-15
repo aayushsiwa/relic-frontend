@@ -93,8 +93,7 @@ API clients.
 
 A companion Chromium extension lets you save the current tab straight into your
 library. See
-[relic-chromium-extension](https://github.com/aayushsiwa/relic-chromium-extension.git)
-(also checked out at `../relic-extension`). It authenticates via the bearer
+[relic-chromium-extension](https://github.com/aayushsiwa/relic-chromium-extension.git). It authenticates via the bearer
 token shown in **Settings** (`/settings`) and posts to `/api/relics`.
 
 ## Available scripts
