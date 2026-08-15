@@ -1,0 +1,16 @@
+.git
+.next
+node_modules
+build
+out
+coverage
+.env
+.env.*
+!.example.env
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+Dockerfile
+docker-compose.yaml
