@@ -37,6 +37,7 @@
     "metascraper-title": "^5.53.0",
     "metascraper-url": "^5.53.0",
     "next": "16.2.12",
+    "nodemailer": "^9.0.5",
     "pg": "^8.22.0",
     "phosphor-react": "^1.4.1",
     "prettier": "^3.9.6",
@@ -50,6 +51,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
