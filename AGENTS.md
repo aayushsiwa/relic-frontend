@@ -12,6 +12,8 @@
 - `pnpm db:generate` — Generate Drizzle SQL migration from schema
 - `pnpm db:migrate` — Apply pending migrations to Postgres
 - `pnpm db:push` — Push schema directly (dev only)
+- `docker compose up -d --build` — Build and run the self-hosting stack (`relic-frontend` + optional `relic-db`)
+- `docker compose build app` — Build only the frontend image
 
 No test, e2e, CI/CD, or pre-commit hooks exist. Do not add or run tests.
 
@@ -24,19 +26,20 @@ No test, e2e, CI/CD, or pre-commit hooks exist. Do not add or run tests.
 - **better-auth** (email/password + GitHub OAuth; Postgres via `pg` driver, not an ORM); `bearer` plugin for API-token auth
 - Auth route handler: `app/api/auth/[...all]/route.ts` wires `better-auth/next-js`
 - **Metadata/enrichment:** `@extractus/article-extractor` (Mozilla Readability), `metascraper*`, `cheerio` — pull title/description/image/favicon/tags when a URL relic is saved
-- **Email:** personal `email-service` via `lib/email.ts` (see README) — used for verification, reset-password, and change-email emails
+- **Email:** `lib/email.ts` exposes a unified `sendEmail` wrapper. It uses the personal email-service when `EMAIL_SERVICE_URL` + `EMAIL_SERVICE_API_KEY` exist, otherwise SMTP (`SMTP_*`). Used for verification, reset-password, and change-email emails.
 
 ## Project structure
 
 - `app/` — Thin page wrappers (auth check + render container). API routes at `app/api/`.
 - `app/api/relics`, `app/api/collections`, `app/api/tags` — REST routes (+ `[id]/` subroutes)
-- `app/verify-email`, `app/forgot-password`, `app/reset-password/[token]` — auth/email pages
-- `lib/container/` — Page-level components (one folder per route: `Home/`, `Login/`, `Signup/`, `Settings/`, `Library/`, `Collections/`)
-- `lib/components/` — Custom reusable components shared across containers (`Navbar`, `SearchFilters`, `RelicCard`, `ViewRelicDialog`, `AddRelicDialog`, `EditRelicDialog`)
-- `lib/` — `auth.ts` (better-auth), `auth-client.ts`, `db.ts` (Drizzle + Pool), `schema.ts`, `metadata.ts` (scrape/enrichment + tag derivation), `email.ts` (email-service client), `utils.ts` (`cn()`)
+- `app/landing`, `app/verify-email`, `app/forgot-password`, `app/reset-password/[token]` — landing/auth/email pages
+- `lib/container/` — Page-level components (one folder per route: `Home/`, `Landing/`, `Login/`, `Signup/`, `Settings/`, `Library/`, `Collections/`)
+- `lib/components/` — Custom reusable components shared across containers (`Navbar`, `ThemeToggle`, `SearchFilters`, `RelicCard`, `ViewRelicDialog`, `AddRelicDialog`, `EditRelicDialog`)
+- `lib/` — `config.ts` (central env parsing), `auth.ts` (better-auth), `auth-client.ts`, `db.ts` (Drizzle + Pool), `schema.ts`, `metadata.ts` (scrape/enrichment + tag derivation), `email.ts` (email-service/SMTP sender), `utils.ts` (`cn()`)
 - `lib/api/` — `index.ts` (axios instance), `relics.ts`, `collections.ts`, `tags.ts` (typed API functions)
 - `components/ui/` — shadcn ui primitives (button, card, field, etc.)
-- `middleware.ts` — CORS headers for `/api/*`; OPTIONS preflight handled here
+- `middleware.ts` — CORS headers for `/api/*`; OPTIONS preflight handled here. Also redirects page routes to `/landing` when `MODE=landing`.
+- `Dockerfile`, `.dockerignore`, `docker-compose.yaml` — self-hosting Docker setup. Compose stack name is `relic`, containers are `relic-frontend` and `relic-db`, network is `relic`, Postgres volume is `relic-postgres-data`.
 - `drizzle/` — Generated migration SQL files
 - `better-auth_migrations/` — SQL migration for auth tables (apply manually to Postgres)
 - `types/article-extractor.d.ts` — ambient types (package ships no types)
@@ -61,18 +64,22 @@ No test, e2e, CI/CD, or pre-commit hooks exist. Do not add or run tests.
 
 - `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` — auth/db
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — GitHub OAuth
-- `EMAIL_SERVICE_URL`, `EMAIL_SERVICE_API_KEY` — outbound email (required for signup/verify/reset)
+- `EMAIL_SERVICE_URL`, `EMAIL_SERVICE_API_KEY` — outbound email-service provider
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` — direct SMTP provider
+- `EMAIL_REQUIRED_FOR_SIGNUP` — backend flag for optional email on signup (default true)
+- `MODE` — when set to `landing`, middleware redirects page routes to `/landing`
+- `APP_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — Docker Compose self-hosting defaults
 
 ## Quirks
 
 - Scratch files `lib/server.ts`, `lib/user.ts` were deleted — do not recreate (do not create `lib/api/*` scratch either; `lib/api/` is the typed client).
-- `pnpm-workspace.yaml` only sets build permissions for `sharp`, `unrs-resolver`, `esbuild` — **not** a monorepo.
+- `pnpm-workspace.yaml` only sets build permissions for `sharp`, `unrs-resolver`, `esbuild`, and `re2` — **not** a monorepo. Dockerfile must copy it before `pnpm install` or pnpm will reject native build scripts.
 - `.env` contains live secrets — avoid committing.
 - shadcn `base-lyra` style uses `@base-ui/react` (not Radix) for primitives, `cva` for variants, `data-slot` attributes, `@container` queries.
 - ESLint ignores `.next/`, `out/`, `build/`, `next-env.d.ts` via `globalIgnores` in `eslint.config.mjs`.
 
 ## Reference files
 
-`/package.json`, `/tsconfig.json`, `/components.json`, `/eslint.config.mjs`, `/postcss.config.mjs`, `/next.config.ts`, `/drizzle.config.ts`, `/lib/schema.ts`, `/lib/db.ts`, `/lib/auth.ts`, `/lib/metadata.ts`, `/lib/email.ts`
+`/package.json`, `/tsconfig.json`, `/components.json`, `/eslint.config.mjs`, `/postcss.config.mjs`, `/next.config.ts`, `/drizzle.config.ts`, `/Dockerfile`, `/docker-compose.yaml`, `/.dockerignore`, `/lib/config.ts`, `/lib/schema.ts`, `/lib/db.ts`, `/lib/auth.ts`, `/lib/metadata.ts`, `/lib/email.ts`
 
-_Update this file if CI, `opencode.json`, `.github/*`, or new configs are added._
+_Update this file if CI, `opencode.json`, `.github/*`, Docker setup, or new configs are added._
