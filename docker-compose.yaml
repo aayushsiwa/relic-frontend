@@ -1,0 +1,66 @@
+name: relic
+
+services:
+  app:
+    container_name: relic-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      MODE: ${MODE:-app}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://relic:relic@relic-db:5432/relic}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY:-}
+      EMAIL_REQUIRED_FOR_SIGNUP: ${EMAIL_REQUIRED_FOR_SIGNUP:-true}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - relic
+    restart: unless-stopped
+
+  postgres:
+    container_name: relic-db
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-relic}
+      POSTGRES_USER: ${POSTGRES_USER:-relic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-relic}
+    volumes:
+      - relic-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-relic} -d ${POSTGRES_DB:-relic}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      relic:
+        aliases:
+          - relic-db
+    restart: unless-stopped
+
+networks:
+  relic:
+    name: relic
+
+volumes:
+  relic-postgres-data:
+    name: relic-postgres-data
