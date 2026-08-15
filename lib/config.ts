@@ -1,7 +1,13 @@
+const emailServiceUrl = process.env.EMAIL_SERVICE_URL;
+const emailServiceApiKey = process.env.EMAIL_SERVICE_API_KEY;
+
 export const config = {
+  app: {
+    mode: process.env.MODE ?? 'app',
+  },
   email: {
-    serviceUrl: process.env.EMAIL_SERVICE_URL,
-    apiKey: process.env.EMAIL_SERVICE_API_KEY,
+    serviceUrl: emailServiceUrl,
+    apiKey: emailServiceApiKey,
     smtp: {
       host: process.env.SMTP_HOST ?? '',
       port: process.env.SMTP_PORT ?? 587,
@@ -14,7 +20,7 @@ export const config = {
     emailRequired: ((): boolean => {
       const val = process.env.EMAIL_REQUIRED_FOR_SIGNUP;
       if (val === undefined) return true;
-      return ["true","1","yes","y"].includes(val.trim().toLowerCase());
+      return ['true', '1', 'yes', 'y'].includes(val.trim().toLowerCase());
     })(),
   },
   db: {
@@ -35,7 +41,7 @@ export const config = {
  * Defaults to 'email-service' if config present, else 'smtp'.
  */
 export function getEmailProvider(): 'email-service' | 'smtp' {
-  if (process.env.EMAIL_SERVICE_URL && process.env.EMAIL_SERVICE_API_KEY) {
+  if (config.email.serviceUrl && config.email.apiKey) {
     return 'email-service';
   }
   return 'smtp';

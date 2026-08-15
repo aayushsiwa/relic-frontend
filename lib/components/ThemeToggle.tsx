@@ -2,11 +2,14 @@
 import { Moon, Sun } from 'phosphor-react';
 import { useSyncExternalStore } from 'react';
 
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
 import { useTheme } from './ThemeContext';
 
 const emptySubscribe = () => () => {};
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   // Hide icon during SSR to avoid hydration issues
   const mounted = useSyncExternalStore(
@@ -22,7 +25,11 @@ export function ThemeToggle() {
         theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
       }
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="rounded p-2 hover:bg-accent/30 text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      className={cn(
+        buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+        'text-muted-foreground',
+        className
+      )}
       aria-label="Toggle dark mode"
       type="button"
     >
