@@ -27,11 +27,12 @@ export function RelicCard({
       onClick={onView}
     >
       {relic.previewImage ? (
-        <div className={'relative w-full'}>
+        <div className={'relative w-full -mt-4 flex justify-center'}>
           <img
             src={relic.previewImage}
             alt={relic.title || relic.url || 'Preview'}
-            className="object-cover"
+            className="object-cover max-w-full max-h-72 mx-auto"
+            style={{ display: 'block' }}
           />
         </div>
       ) : relic.isProcessing ? (
