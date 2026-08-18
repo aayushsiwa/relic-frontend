@@ -155,6 +155,53 @@ library. See
 It authenticates via the bearer token shown in **Settings** (`/settings`) and
 posts to `/api/relics`.
 
+## Roadmap
+
+Ideas for what comes next, roughly grouped by area. None of these are
+implemented yet.
+
+### Saving & content
+
+- **File uploads** — the `relics.content_type` enum already has a `file` value,
+  but there is no upload path, storage, or viewer. Wire up S3/local storage plus
+  a file-type relic card and preview.
+- **Full-page archive** — store the fetched HTML (and a Readability-extracted
+  text copy) so the original content survives link rot, and enable search inside
+  the saved article body rather than just metadata.
+- **Import from other services** — one-click import from Pocket, Instapaper,
+  Raindrop, or a browser bookmarks HTML file.
+
+### Search & organization
+
+- **Real full-text search** — replace the current `ILIKE` query/filtering with
+  Postgres `tsvector` (and `pg_trgm` for fuzzy matching) for speed and relevance
+  ranking as libraries grow.
+- **Smart collections** — saved searches that auto-populate from a query, tag,
+  or domain rule instead of manual assignment.
+- **Tag management UI** — rename, merge, and bulk-delete unused tags from
+  Settings; currently tags can only be created implicitly on save.
+- **Bulk actions** — multi-select relics to bulk-tag, move between collections,
+  or delete.
+
+### Sharing & access
+
+- **Public sharing** — generate a read-only share link for a single relic or an
+  entire collection (public/unlisted), with optional password protection.
+- **Read-later queue & reminders** — a lightweight inbox for unsorted links plus
+  optional "remind me later" nudges.
+- **API parity** — expose collections and tags CRUD behind the bearer token (the
+  API currently only covers relics), plus webhooks fired on new-relic events for
+  automation.
+
+### Platform
+
+- **Offline / PWA** — service worker + installable app so the library and viewer
+  work offline.
+- **Export & data portability** — download the whole account (relics,
+  collections, tags) as JSON/HTML, and a self-serve delete-account flow.
+- **Enrichment hardening** — rate-limit and cache the metadata fetch to avoid
+  re-scraping the same URL and to protect against abuse.
+
 ## Available Scripts
 
 - `pnpm dev` — dev server
