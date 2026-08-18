@@ -16,16 +16,47 @@ export function RelicCard({
   relic,
   onView,
   onEdit,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   relic: RelicWithRelations;
   onView: () => void;
   onEdit: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
+  function handleClick() {
+    if (selectable) {
+      onToggleSelect?.();
+      return;
+    }
+    onView();
+  }
+
   return (
     <Card
-      className="relative flex flex-col w-full cursor-pointer hover:shadow-[0_0_0_1px_var(--border)]"
-      onClick={onView}
+      className={
+        'relative flex flex-col w-full cursor-pointer hover:shadow-[0_0_0_1px_var(--border)]' +
+        (selectable && selected ? ' outline outline-2 outline-primary' : '')
+      }
+      onClick={handleClick}
     >
+      {selectable && (
+        <div
+          className="absolute left-2 top-2 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect?.()}
+            className="size-4 accent-primary"
+            aria-label={`Select ${relic.title || relic.url || 'relic'}`}
+          />
+        </div>
+      )}
       {relic.previewImage ? (
         <div className={'relative w-full -mt-4 flex justify-center'}>
           <img

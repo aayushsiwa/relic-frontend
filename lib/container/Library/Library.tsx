@@ -1,5 +1,6 @@
 'use client';
 
+import { CheckSquare, Square, Trash, X } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import Masonry from 'react-masonry-css';
 
@@ -14,6 +15,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  bulkAddToCollectionsAPI,
+  bulkDeleteRelicsAPI,
+  bulkTagRelicsAPI,
+} from '@/lib/api/relics';
 import { AddRelicDialog } from '@/lib/components/AddRelicDialog';
 import { Navbar } from '@/lib/components/Navbar';
 import { RelicCard } from '@/lib/components/RelicCard';
@@ -37,6 +43,70 @@ export function Library({
   const [viewingRelicId, setViewingRelicId] = useState<string | null>(null);
   const [editingRelicId, setEditingRelicId] = useState<string | null>(null);
   const [addRelicOpen, setAddRelicOpen] = useState(false);
+
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+
+  function toggleSelectMode() {
+    setSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+    setBulkError(null);
+  }
+
+  function toggleRelic(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkAddToCollection(collectionId: string) {
+    if (!collectionId || !selectedIds.size) return;
+    setBulkBusy(true);
+    setBulkError(null);
+    try {
+      await bulkAddToCollectionsAPI(Array.from(selectedIds), [collectionId]);
+      refetch();
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : 'Failed to update');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function handleBulkTag(tagId: string) {
+    if (!tagId || !selectedIds.size) return;
+    setBulkBusy(true);
+    setBulkError(null);
+    try {
+      await bulkTagRelicsAPI(Array.from(selectedIds), [tagId]);
+      refetch();
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : 'Failed to update');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedIds.size) return;
+    setBulkBusy(true);
+    setBulkError(null);
+    try {
+      await bulkDeleteRelicsAPI(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      refetch();
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : 'Failed to delete');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   const { data, isLoading, error, refetch } = useLibrary(
     appliedSearch,
@@ -108,7 +178,16 @@ export function Library({
         <div className="mx-auto max-w-7xl">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-semibold">Library</h1>
-            <Button onClick={() => setAddRelicOpen(true)}>Save</Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={selectMode ? 'secondary' : 'outline'}
+                onClick={toggleSelectMode}
+              >
+                {selectMode ? <CheckSquare /> : <Square />}
+                {selectMode ? 'Cancel' : 'Select'}
+              </Button>
+              <Button onClick={() => setAddRelicOpen(true)}>Save</Button>
+            </div>
           </div>
 
           <SearchFilters
@@ -127,6 +206,69 @@ export function Library({
           {error && (
             <div className="mb-4 rounded border border-destructive/20 bg-destructive/5 px-4 py-2 text-sm text-destructive">
               {error}
+            </div>
+          )}
+
+          {selectMode && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+              <span className="font-medium">{selectedIds.size} selected</span>
+              <select
+                defaultValue=""
+                disabled={bulkBusy || !selectedIds.size}
+                onChange={(e) => {
+                  handleBulkAddToCollection(e.target.value);
+                  e.target.value = '';
+                }}
+                className="h-8 rounded-none border border-input bg-transparent px-2.5 text-xs focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50"
+              >
+                <option value="">Add to collection…</option>
+                {(data?.collections ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                defaultValue=""
+                disabled={bulkBusy || !selectedIds.size}
+                onChange={(e) => {
+                  handleBulkTag(e.target.value);
+                  e.target.value = '';
+                }}
+                className="h-8 rounded-none border border-input bg-transparent px-2.5 text-xs focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50"
+              >
+                <option value="">Add tag…</option>
+                {(data?.tags ?? []).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={bulkBusy || !selectedIds.size}
+                onClick={handleBulkDelete}
+              >
+                <Trash />
+                Delete
+              </Button>
+              {bulkBusy && (
+                <span className="text-xs text-muted-foreground">Working…</span>
+              )}
+              <button
+                className="ml-auto text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedIds(new Set())}
+                aria-label="Clear selection"
+              >
+                <X />
+              </button>
+            </div>
+          )}
+
+          {bulkError && (
+            <div className="mb-4 rounded border border-destructive/20 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+              {bulkError}
             </div>
           )}
 
@@ -155,6 +297,9 @@ export function Library({
                   <RelicCard
                     key={relic.id}
                     relic={relic}
+                    selectable={selectMode}
+                    selected={selectedIds.has(relic.id)}
+                    onToggleSelect={() => toggleRelic(relic.id)}
                     onView={() => setViewingRelicId(relic.id)}
                     onEdit={() => setEditingRelicId(relic.id)}
                   />

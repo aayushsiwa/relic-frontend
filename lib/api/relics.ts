@@ -80,3 +80,29 @@ export async function updateRelicAPI(id: string, data: UpdateRelicRequest) {
 export async function deleteRelicAPI(id: string) {
   await api.delete(`/api/relics/${id}`);
 }
+
+export async function bulkDeleteRelicsAPI(ids: string[]) {
+  const res = await api.delete<{ deleted: number }>('/api/relics/bulk', {
+    data: { ids },
+  });
+  return res.data;
+}
+
+export async function bulkTagRelicsAPI(ids: string[], tagIds: string[]) {
+  const res = await api.post<{ updated: number }>('/api/relics/bulk/tags', {
+    ids,
+    tagIds,
+  });
+  return res.data;
+}
+
+export async function bulkAddToCollectionsAPI(
+  ids: string[],
+  collectionIds: string[]
+) {
+  const res = await api.post<{ updated: number }>(
+    '/api/relics/bulk/collections',
+    { ids, collectionIds }
+  );
+  return res.data;
+}
