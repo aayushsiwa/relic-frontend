@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Navbar } from '@/lib/components/Navbar';
 import {
   deleteTagAPI,
   getTagsAPI,
@@ -14,6 +13,7 @@ import {
   updateTagAPI,
 } from '@/lib/api/tags';
 import type { Tag } from '@/lib/api/tags';
+import { Navbar } from '@/lib/components/Navbar';
 
 type MergeState = {
   sourceId: string;
@@ -34,7 +34,6 @@ export function Tags({
   const [merge, setMerge] = useState<MergeState>(null);
 
   async function load() {
-    setIsLoading(true);
     try {
       const res = await getTagsAPI({ limit: 200 });
       setTags(res.data);
@@ -47,8 +46,23 @@ export function Tags({
   }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await getTagsAPI({ limit: 200 });
+        if (ignore) return;
+        setTags(res.data);
+        setError(null);
+      } catch (err) {
+        if (ignore) return;
+        setError(err instanceof Error ? err.message : 'Failed to load tags');
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   function startEdit(tag: Tag) {
@@ -135,10 +149,7 @@ export function Tags({
                           className="flex-1"
                           autoFocus
                         />
-                        <Button
-                          size="sm"
-                          onClick={() => handleRename(tag.id)}
-                        >
+                        <Button size="sm" onClick={() => handleRename(tag.id)}>
                           Save
                         </Button>
                         <Button
@@ -238,9 +249,10 @@ export function Tags({
           {merge && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Warning className="text-amber-500" />
-              Merging moves all relics from{' '}
-              <strong>{merge.sourceName}</strong> into the selected tag, then
-              deletes the source.
+              Merging moves all relics from <strong>
+                {merge.sourceName}
+              </strong>{' '}
+              into the selected tag, then deletes the source.
             </p>
           )}
         </div>

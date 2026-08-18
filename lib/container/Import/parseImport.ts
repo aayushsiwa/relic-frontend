@@ -8,7 +8,8 @@ export function parseImportInput(raw: string): ImportItem[] {
   const trimmed = raw.trim();
   if (!trimmed) return [];
 
-  const looksLikeHtml = /<a\s/i.test(trimmed) || /<!doctype html/i.test(trimmed);
+  const looksLikeHtml =
+    /<a\s/i.test(trimmed) || /<!doctype html/i.test(trimmed);
   if (looksLikeHtml) return parseBookmarksHtml(trimmed);
 
   if (trimmed.includes(',') || trimmed.includes('\t')) {
@@ -122,7 +123,7 @@ function parseDelimited(text: string): ImportItem[] {
 
   const rows = isHeader ? lines.slice(1) : lines;
 
-  let colMap: Record<string, number> = {};
+  const colMap: Record<string, number> = {};
   if (isHeader) {
     firstFields.forEach((field, i) => {
       const key = field.toLowerCase();
@@ -134,8 +135,7 @@ function parseDelimited(text: string): ImportItem[] {
   }
 
   if (colMap.url === undefined) colMap.url = 0;
-  if (colMap.title === undefined && firstFields.length > 1)
-    colMap.title = 1;
+  if (colMap.title === undefined && firstFields.length > 1) colMap.title = 1;
 
   const items: ImportItem[] = [];
   for (const line of rows) {
@@ -144,8 +144,7 @@ function parseDelimited(text: string): ImportItem[] {
     if (!url) continue;
 
     const title = colMap.title !== undefined ? fields[colMap.title] : undefined;
-    const tagsRaw =
-      colMap.tags !== undefined ? fields[colMap.tags] : undefined;
+    const tagsRaw = colMap.tags !== undefined ? fields[colMap.tags] : undefined;
     const note = colMap.note !== undefined ? fields[colMap.note] : undefined;
 
     const tags = tagsRaw

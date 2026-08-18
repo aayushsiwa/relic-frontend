@@ -11,9 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Navbar } from '@/lib/components/Navbar';
 import { importRelicsAPI } from '@/lib/api/import';
 import type { ImportItem } from '@/lib/api/import';
+import { Navbar } from '@/lib/components/Navbar';
+
 import { parseImportInput } from './parseImport';
 
 export function Import({
@@ -83,7 +84,8 @@ export function Import({
           <h1 className="mb-2 text-2xl font-semibold">Import</h1>
           <p className="mb-6 text-sm text-muted-foreground">
             Bring your saved links from a browser export, Pocket, Raindrop, or
-            any CSV with a <code>url</code> column. One link per line also works.
+            any CSV with a <code>url</code> column. One link per line also
+            works.
           </p>
 
           <Card className="mb-6">
@@ -123,7 +125,9 @@ export function Import({
                     setText(e.target.value);
                     runParse(e.target.value);
                   }}
-                  placeholder={'https://example.com/article-1\nhttps://example.com/article-2'}
+                  placeholder={
+                    'https://example.com/article-1\nhttps://example.com/article-2'
+                  }
                   className="h-48 w-full resize-y rounded-none border border-input bg-transparent p-3 text-sm focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
                 />
               </div>

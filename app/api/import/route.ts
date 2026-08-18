@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextRequest, after } from 'next/server';
 
@@ -17,9 +16,7 @@ type ImportItem = {
 function isValidHttpUrl(raw: string): boolean {
   try {
     const parsed = new URL(raw);
-    return (
-      parsed.protocol === 'http:' || parsed.protocol === 'https:'
-    );
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
   }

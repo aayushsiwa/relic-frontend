@@ -27,9 +27,7 @@ export async function PUT(
   const [existing] = await db
     .select({ id: schema.tags.id })
     .from(schema.tags)
-    .where(
-      and(eq(schema.tags.id, id), eq(schema.tags.userId, session.user.id))
-    )
+    .where(and(eq(schema.tags.id, id), eq(schema.tags.userId, session.user.id)))
     .limit(1);
 
   if (!existing) {
@@ -71,9 +69,7 @@ export async function DELETE(
   const [existing] = await db
     .select({ id: schema.tags.id })
     .from(schema.tags)
-    .where(
-      and(eq(schema.tags.id, id), eq(schema.tags.userId, session.user.id))
-    )
+    .where(and(eq(schema.tags.id, id), eq(schema.tags.userId, session.user.id)))
     .limit(1);
 
   if (!existing) {

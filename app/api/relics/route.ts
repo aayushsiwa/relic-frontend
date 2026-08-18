@@ -5,7 +5,6 @@ import { NextRequest, after } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db, schema } from '@/lib/db';
 import { enrichRelic } from '@/lib/enrich';
-import { resolveTagIds } from '@/lib/metadata';
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({

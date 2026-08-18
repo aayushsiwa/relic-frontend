@@ -36,9 +36,7 @@ export async function enrichRelic(
       const autoTagIds = await resolveTagIds(userId, metadata.tags);
       await db
         .insert(schema.relicTags)
-        .values(
-          autoTagIds.map((tagId: string) => ({ relicId, tagId }))
-        )
+        .values(autoTagIds.map((tagId: string) => ({ relicId, tagId })))
         .onConflictDoNothing();
     }
   } catch {
