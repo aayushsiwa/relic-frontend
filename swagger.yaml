@@ -1,0 +1,1328 @@
+openapi: 3.0.3
+info:
+  title: Relic API
+  description: API reference for Relic, a personal bookmarking and archiving tool. All resource routes require authentication via session cookies or API Bearer tokens.
+  version: 1.0.0
+  contact:
+    name: Relic Support
+    url: https://github.com/aayushsiwa/relic-frontend
+servers:
+  - url: /api
+    description: Relic Local Server
+tags:
+  - name: Auth
+    description: Authentication endpoints managed by better-auth
+  - name: Relics
+    description: Relics management endpoints for adding, updating, searching, and deleting bookmarked resources
+  - name: Collections
+    description: Collections management endpoints for organizing relics
+  - name: Tags
+    description: Tags management endpoints for labeling and grouping relics
+paths:
+  /auth/sign-in/email:
+    post:
+      summary: Email/password login
+      description: Logs in a user using email and password credentials.
+      operationId: signInEmail
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  session:
+                    $ref: '#/components/schemas/Session'
+        '400':
+          description: Invalid input or credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/sign-up/email:
+    post:
+      summary: Email/password registration
+      description: Registers a new user using email, password, and name.
+      operationId: signUpEmail
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                name:
+                  type: string
+              required:
+                - email
+                - password
+                - name
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  session:
+                    $ref: '#/components/schemas/Session'
+        '400':
+          description: Bad request or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/sign-out:
+    post:
+      summary: Sign out
+      description: Signs out the current user session.
+      operationId: signOut
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: Successfully signed out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /auth/session:
+    get:
+      summary: Get current session
+      description: Returns the details of the active user session if authenticated.
+      operationId: getSession
+      tags:
+        - Auth
+      responses:
+        '200':
+          description: Current session details
+          content:
+            application/json:
+              schema:
+                type: object
+                nullable: true
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  session:
+                    $ref: '#/components/schemas/Session'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /relics:
+    get:
+      summary: List relics
+      description: Returns a paginated list of relics for the current user, optionally filtered by search query, collection ID, or tag ID.
+      operationId: listRelics
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Search term to match title, url, domain, description, or note
+          required: false
+          schema:
+            type: string
+        - name: collectionId
+          in: query
+          description: Filter relics by collection ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: tagId
+          in: query
+          description: Filter relics by tag ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: A paginated list of relics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Relic'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  totalPages:
+                    type: integer
+                required:
+                  - data
+                  - total
+                  - page
+                  - limit
+                  - totalPages
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a relic
+      description: Creates a new relic. Valid values for contentType are url, note, file. Specifying url triggers asynchronous enrichment.
+      operationId: createRelic
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                title:
+                  type: string
+                description:
+                  type: string
+                note:
+                  type: string
+                domain:
+                  type: string
+                previewImage:
+                  type: string
+                  format: uri
+                favicon:
+                  type: string
+                  format: uri
+                contentType:
+                  type: string
+                  enum: [url, note, file]
+                  default: url
+                collectionIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                tagIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+              required:
+                - url
+      responses:
+        '201':
+          description: Relic created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelicDetail'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict — relic with this URL already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /relics/{id}:
+    get:
+      summary: Get a relic
+      description: Retrieves the detailed representation of a specific relic by ID.
+      operationId: getRelic
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Relic ID to fetch
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Relic details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relic'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update a relic
+      description: Updates editable properties of an existing relic.
+      operationId: updateRelic
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Relic ID to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                note:
+                  type: string
+                collectionIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                tagIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Relic updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relic'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a relic
+      description: Deletes a specific relic. Associated metadata and tags are decoupled.
+      operationId: deleteRelic
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Relic ID to delete
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /relics/bulk:
+    delete:
+      summary: Delete multiple relics
+      description: Deletes multiple relics at once by providing an array of IDs.
+      operationId: deleteRelicBulk
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+              required:
+                - ids
+      responses:
+        '200':
+          description: Bulk deletion summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+                required:
+                  - deleted
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /relics/bulk/collections:
+    post:
+      summary: Bulk add relics to collections
+      description: Assigns multiple relics to one or more collections.
+      operationId: bulkAddRelicCollections
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                collectionIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+              required:
+                - ids
+                - collectionIds
+      responses:
+        '200':
+          description: Bulk update summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+                required:
+                  - updated
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No matching relics owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /collections:
+    get:
+      summary: List collections
+      description: Retrieves a list of collections created by the current user.
+      operationId: listCollections
+      tags:
+        - Collections
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: A paginated list of collections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Collection'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  totalPages:
+                    type: integer
+                required:
+                  - data
+                  - total
+                  - page
+                  - limit
+                  - totalPages
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a collection
+      description: Creates a new collection with a custom name, description, and color tag.
+      operationId: createCollection
+      tags:
+        - Collections
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                color:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Collection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '400':
+          description: Name is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /collections/{id}:
+    get:
+      summary: Get a collection
+      description: Retrieves information about a specific collection by its ID.
+      operationId: getCollection
+      tags:
+        - Collections
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Collection ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update a collection
+      description: Updates the name, description, or color of an existing collection.
+      operationId: updateCollection
+      tags:
+        - Collections
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Collection ID to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                color:
+                  type: string
+      responses:
+        '200':
+          description: Collection updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a collection
+      description: Deletes a specific collection. Relics linked to this collection are preserved.
+      operationId: deleteCollection
+      tags:
+        - Collections
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Collection ID to delete
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tags:
+    get:
+      summary: List tags
+      description: Lists tags created by or auto-assigned to the user.
+      operationId: listTags
+      tags:
+        - Tags
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: A paginated list of tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  totalPages:
+                    type: integer
+                required:
+                  - data
+                  - total
+                  - page
+                  - limit
+                  - totalPages
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a tag
+      description: Creates a new tag manually.
+      operationId: createTag
+      tags:
+        - Tags
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Tag created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Name is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict — tag already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tags/{id}:
+    put:
+      summary: Update a tag name
+      description: Renames a specific tag.
+      operationId: updateTag
+      tags:
+        - Tags
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Tag ID to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required:
+                - name
+      responses:
+        '200':
+          description: Tag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Tag name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a tag
+      description: Deletes a tag. Links between relics and this tag are removed automatically.
+      operationId: deleteTag
+      tags:
+        - Tags
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Tag ID to delete
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tags/merge:
+    post:
+      summary: Merge one tag into another
+      description: Merges a source tag into a target tag, transferring all relic associations.
+      operationId: mergeTags
+      tags:
+        - Tags
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sourceId:
+                  type: string
+                  format: uuid
+                targetId:
+                  type: string
+                  format: uuid
+              required:
+                - sourceId
+                - targetId
+      responses:
+        '200':
+          description: Merge summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  merged:
+                    type: integer
+                required:
+                  - merged
+        '400':
+          description: Bad request (source ID and target ID are identical or missing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Source or target tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /import:
+    post:
+      summary: Bulk import relics from URLs
+      description: Imports multiple URLs as relics, triggering background metadata enrichment.
+      operationId: importRelics
+      tags:
+        - Relics
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                      title:
+                        type: string
+                      note:
+                        type: string
+                      tags:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - url
+              required:
+                - items
+      responses:
+        '200':
+          description: Import result summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: integer
+                  skipped:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - imported
+                  - skipped
+                  - errors
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        emailVerified:
+          type: boolean
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - emailVerified
+        - name
+        - createdAt
+        - updatedAt
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - token
+        - expiresAt
+        - createdAt
+        - updatedAt
+
+    Relic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        domain:
+          type: string
+          nullable: true
+        previewImage:
+          type: string
+          format: uri
+          nullable: true
+        favicon:
+          type: string
+          format: uri
+          nullable: true
+        isProcessing:
+          type: boolean
+        contentType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        collections:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+            required:
+              - id
+              - name
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+            required:
+              - id
+              - name
+      required:
+        - id
+        - userId
+        - url
+        - isProcessing
+        - contentType
+        - createdAt
+        - updatedAt
+        - collections
+        - tags
+
+    RelicDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        domain:
+          type: string
+          nullable: true
+        previewImage:
+          type: string
+          format: uri
+          nullable: true
+        favicon:
+          type: string
+          format: uri
+          nullable: true
+        contentType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - url
+        - contentType
+        - createdAt
+        - updatedAt
+
+    Collection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        relicCount:
+          type: integer
+          description: Count of relics linked to this collection in list responses.
+      required:
+        - id
+        - userId
+        - name
+        - createdAt
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        relicCount:
+          type: integer
+          description: Count of relics linked to this tag in list responses.
+      required:
+        - id
+        - name
+        - createdAt
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

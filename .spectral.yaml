@@ -1,0 +1,8 @@
+extends:
+  - spectral:oas
+
+rules:
+  operation-description: error
+  operation-tags: error
+  oas3-api-servers: error
+  oas3-unused-component: error

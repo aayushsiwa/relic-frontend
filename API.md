@@ -203,6 +203,10 @@ Sending `collectionIds` or `tagIds` replaces the entire set. Omit them to leave 
 }
 ```
 
+`relicCount` is an integer count of relics linked to each collection in the
+list response. Single collection routes return the base collection object
+without that field.
+
 ---
 
 ### `POST /api/collections` — Create a collection
@@ -287,6 +291,9 @@ Only `name` is required.
   "totalPages": 1
 }
 ```
+
+`relicCount` is an integer count of relics linked to each tag in the list
+response. Single tag routes return the base tag object without that field.
 
 Tags are normally created automatically when saving relics (explicit `tagIds` or derived from page metadata/site name). They can also be created manually:
 

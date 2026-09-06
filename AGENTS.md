@@ -10,7 +10,7 @@
 - `pnpm format` / `pnpm format:check` — Prettier (write / check)
 - `pnpm run-checks` — `pnpm lint && pnpm type-check && pnpm format:check` (run after changes)
 - `pnpm db:generate` — Generate Drizzle SQL migration from schema
-- `pnpm db:migrate` — Apply pending migrations to Postgres
+- `pnpm db:migrate` — Apply pending migrations to Postgres: **both** Drizzle (`db:migrate:drizzle`) and better-auth (`pnpm db:auth`, runs `better-auth migrate --config ./lib/auth.ts -y`; CLI auto-loads `.env`)
 - `pnpm db:push` — Push schema directly (dev only)
 - `docker compose up -d --build` — Build and run the self-hosting stack (`relic-frontend` + optional `relic-db`)
 - `docker compose build app` — Build only the frontend image
@@ -41,13 +41,15 @@ No test, e2e, CI/CD, or pre-commit hooks exist. Do not add or run tests.
 - `middleware.ts` — CORS headers for `/api/*`; OPTIONS preflight handled here. Also redirects page routes to `/landing` when `MODE=landing`.
 - `Dockerfile`, `.dockerignore`, `docker-compose.yaml` — self-hosting Docker setup. Compose stack name is `relic`, containers are `relic-frontend` and `relic-db`, network is `relic`, Postgres volume is `relic-postgres-data`.
 - `drizzle/` — Generated migration SQL files
-- `better-auth_migrations/` — SQL migration for auth tables (apply manually to Postgres)
+- `better-auth_migrations/` — Legacy manual auth SQL (pre-CLI); superseded by `pnpm db:auth`
 - `types/article-extractor.d.ts` — ambient types (package ships no types)
 - Path alias `@/` maps to project root (`tsconfig.json` + `components.json`)
 
-## Drizzle
+## Drizzle & auth migrations
 
 - Schema lives in `lib/schema.ts`. After changing schema: `pnpm db:generate && pnpm db:migrate`
+- better-auth schema changes (plugins, user fields in `lib/auth.ts`) need **no SQL files** — run `pnpm db:auth`, which diffs the config against the DB and applies changes directly. No separate generate step exists.
+- `better-auth_migrations/` is legacy (pre-CLI manual SQL, kept for history). Do not add new files there; use `pnpm db:auth`.
 - The `user` table is managed by better-auth — Drizzle schema defines it for FK references only; migrations skip CREATE TABLE for `user` (already exists).
 - Junction tables use `primaryKey({ columns: [...] })` for composite PKs.
 
@@ -73,7 +75,7 @@ No test, e2e, CI/CD, or pre-commit hooks exist. Do not add or run tests.
 ## Quirks
 
 - Scratch files `lib/server.ts`, `lib/user.ts` were deleted — do not recreate (do not create `lib/api/*` scratch either; `lib/api/` is the typed client).
-- `pnpm-workspace.yaml` only sets build permissions for `sharp`, `unrs-resolver`, `esbuild`, and `re2` — **not** a monorepo. Dockerfile must copy it before `pnpm install` or pnpm will reject native build scripts.
+- `pnpm-workspace.yaml` `allowBuilds` only permits native builds for `sharp`, `unrs-resolver`, `esbuild`, and `re2`; `@prisma/client` and `better-sqlite3` are explicitly `false` (optional deps of `@better-auth/cli`, unused with Postgres) — **not** a monorepo. Dockerfile must copy it before `pnpm install` or pnpm will reject native build scripts.
 - `.env` contains live secrets — avoid committing.
 - shadcn `base-lyra` style uses `@base-ui/react` (not Radix) for primitives, `cva` for variants, `data-slot` attributes, `@container` queries.
 - ESLint ignores `.next/`, `out/`, `build/`, `next-env.d.ts` via `globalIgnores` in `eslint.config.mjs`.

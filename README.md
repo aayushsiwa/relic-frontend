@@ -62,12 +62,11 @@ Apply the auth and app migrations against the configured database before using
 the app:
 
 ```bash
-psql "$DATABASE_URL" -f better-auth_migrations/*.sql
 pnpm db:migrate
 ```
 
-If you use the bundled Postgres container, run those commands from your host
-with a reachable database URL, or from your own migration workflow.
+This applies both the Drizzle migrations (resource tables) and the
+better-auth migrations (auth tables, applied directly from `lib/auth.ts`).
 
 ## Local Development
 
@@ -103,13 +102,21 @@ change-email flows. Without an email provider, those flows will fail.
 
 ### 3. Set up the database
 
-Apply the migrations. better-auth tables are in `better-auth_migrations/`
-(apply manually to Postgres), then run the Drizzle migrations:
+Apply the migrations (both Drizzle and better-auth):
 
 ```bash
-psql "$DATABASE_URL" -f better-auth_migrations/*.sql
 pnpm db:migrate
 ```
+
+After changing the Drizzle schema (`lib/schema.ts`), generate a migration and
+apply it:
+
+```bash
+pnpm db:generate && pnpm db:migrate
+```
+
+If you change better-auth configuration in `lib/auth.ts` (plugins, user
+fields, etc.), apply the auth schema changes with `pnpm db:auth`.
 
 ### 4. Run the dev server
 
@@ -147,13 +154,14 @@ provider; otherwise it falls back to SMTP.
 See [API.md](./API.md) for the full REST reference, including token auth for
 API clients.
 
-## Browser Extension
+## Browser Extensions
 
-A companion Chromium extension lets you save the current tab straight into your
-library. See
-[relic-chromium-extension](https://github.com/aayushsiwa/relic-chromium-extension.git).
-It authenticates via the bearer token shown in **Settings** (`/settings`) and
-posts to `/api/relics`.
+Companion Chromium and Firefox extensions let you save the current tab straight
+into your library. See
+[relic-chromium-extension](https://github.com/aayushsiwa/relic-chromium-extension.git)
+and [relic-firefox-extension](https://github.com/aayushsiwa/relic-firefox-extension.git).
+They authenticate via the bearer token shown in **Settings** (`/settings`) and
+post to `/api/relics`.
 
 ## Roadmap
 
@@ -189,9 +197,8 @@ implemented yet.
   entire collection (public/unlisted), with optional password protection.
 - **Read-later queue & reminders** — a lightweight inbox for unsorted links plus
   optional "remind me later" nudges.
-- **API parity** — expose collections and tags CRUD behind the bearer token (the
-  API currently only covers relics), plus webhooks fired on new-relic events for
-  automation.
+- **Webhooks** — fire events on new-relic creates for automation and
+  integrations.
 
 ### Platform
 
@@ -209,4 +216,6 @@ implemented yet.
 - `pnpm lint` / `pnpm type-check` / `pnpm format` / `pnpm format:check` — code quality
 - `pnpm run-checks` — lint + type-check + format:check
 - `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:push` — Drizzle DB tooling
+  (`db:migrate` also applies better-auth migrations; `pnpm db:auth` for
+  auth-only)
 - `docker compose up -d --build` — build and run the self-hosted stack
