@@ -1,4 +1,7 @@
+# @better-auth/cli optional adapter deps (unused with Postgres) — skip builds
 allowBuilds:
+  '@prisma/client': false
+  better-sqlite3: false
   esbuild: true
   re2: true
   sharp: true

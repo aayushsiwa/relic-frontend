@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         description: schema.collections.description,
         color: schema.collections.color,
         createdAt: schema.collections.createdAt,
-        relicCount: sql<number>`count(${schema.relicCollections.relicId})`,
+        relicCount: sql<number>`count(${schema.relicCollections.relicId})::int`,
       })
       .from(schema.collections)
       .leftJoin(

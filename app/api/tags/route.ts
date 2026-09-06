@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         id: schema.tags.id,
         name: schema.tags.name,
         createdAt: schema.tags.createdAt,
-        relicCount: sql<number>`count(${schema.relicTags.relicId})`,
+        relicCount: sql<number>`count(${schema.relicTags.relicId})::int`,
       })
       .from(schema.tags)
       .leftJoin(schema.relicTags, eq(schema.tags.id, schema.relicTags.tagId))

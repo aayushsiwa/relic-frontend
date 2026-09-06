@@ -10,6 +10,8 @@ const navItems = [
   { href: '/', label: 'Home' },
   { href: '/library', label: 'Library' },
   { href: '/collections', label: 'Collections' },
+  { href: '/tags', label: 'Tags' },
+  { href: '/import', label: 'Import' },
 ];
 
 export function Navbar({
